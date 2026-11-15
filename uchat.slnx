@@ -1,0 +1,5 @@
+<Solution>
+  <Folder Name="/uchat/">
+    <Project Path="uchat/UChat.App/UChat.App.csproj" />
+  </Folder>
+</Solution>

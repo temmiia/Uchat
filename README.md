@@ -1,4 +1,7 @@
-# UChat
+dotnet new install Avalonia.Templates
+dotnet new sln -n uchat
+dotnet new avalonia.mvvm -o .\uchat\UChat.App
+dotnet sln .\uchat.sln add .\uchat\UChat.App\UChat.App.csprojdotnet run --project .\uchat\UChat.App\UChat.App.csproj# UChat
 
 **UChat** is a C#/.NET desktop client-server messenger featuring private and group chats, real-time messaging, and server-side message history.
 
