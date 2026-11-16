@@ -1,4 +1,7 @@
-# UChat — Проєктування бази даних (Users, Conversations, Members, Messages)
+dotnet new install Avalonia.Templates
+dotnet new sln -n uchat
+dotnet new avalonia.mvvm -o .\uchat\UChat.App
+dotnet sln .\uchat.sln add .\uchat\UChat.App\UChat.App.csprojdotnet run --project .\uchat\UChat.App\UChat.App.csproj# UChat
 
 Цей репозиторій містить спроєктовану схему реляційної бази даних, доменні моделі, конфігурації Entity Framework Core 10 (SQLite) та тестове покриття для клієнт-серверного месенджера **UChat**.
 

@@ -1,0 +1,67 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="using:UChat.App.ViewModels"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
+        x:Class="UChat.App.Views.MainWindow"
+        x:DataType="vm:MainViewModel"
+        Icon="/Assets/avalonia-logo.ico"
+        Title="UChat.App"
+        Background="{DynamicResource AppBgBrush}">
+
+    <Grid ColumnDefinitions="280, *">
+
+        <!-- Left sidebar -->
+        <Border Grid.Column="0" 
+                Background="{DynamicResource PanelBgBrush}" 
+                BorderBrush="{DynamicResource MagicBorderBrush}" 
+                BorderThickness="0,0,1,0">
+            <Grid RowDefinitions="Auto, *">
+                <!-- Search -->
+                <TextBox Grid.Row="0" Margin="10" Watermark="Search..." />
+
+                <!-- Chat list -->
+                <ListBox Grid.Row="1" Background="Transparent" />
+            </Grid>
+        </Border>
+
+        <!-- Main content area -->
+        <Grid Grid.Column="1" RowDefinitions="60, *, Auto">
+            
+            <!-- header -->
+            <Border Grid.Row="0" 
+                    Background="{DynamicResource PanelBgBrush}" 
+                    BorderBrush="{DynamicResource MagicBorderBrush}" 
+                    BorderThickness="0,0,0,1"
+                    Padding="20,0">
+                <TextBlock Text="Name" 
+                           VerticalAlignment="Center" 
+                           FontSize="16" 
+                           FontWeight="SemiBold"/>
+            </Border>
+            
+            <!-- Messages area -->
+            <ScrollViewer Grid.Row="1" Padding="15">
+                <ItemsControl />
+            </ScrollViewer>
+            
+            <!-- Message input and send button -->
+            <Border Grid.Row="2" 
+                    Background="{DynamicResource PanelBgBrush}" 
+                    BorderBrush="{DynamicResource MagicBorderBrush}" 
+                    BorderThickness="0,1,0,0"
+                    Padding="10">
+                <Grid ColumnDefinitions="*, Auto">
+                    <TextBox Grid.Column="0" Watermark="Type a message..." Margin="0,0,10,0"/>
+                    <Button Grid.Column="1" 
+                            Content="Send" 
+                            Background="{DynamicResource MagicPurpleBrush}" 
+                            Foreground="White"/>
+                </Grid>
+            </Border>
+
+        </Grid>
+
+    </Grid>
+</Window>
