@@ -12,6 +12,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\UChat.Application\UChat.Application.csproj" />
+    <ProjectReference Include="..\UChat.Domain\UChat.Domain.csproj" />
   </ItemGroup>
 
 </Project>
