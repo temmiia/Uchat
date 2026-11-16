@@ -1,0 +1,55 @@
+name: .NET Avalonia CI
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Detect solution
+        id: detect
+        shell: bash
+        run: |
+          shopt -s nullglob
+          if [ -f "uchat.slnx" ]; then
+            echo "target=uchat.slnx" >> "$GITHUB_OUTPUT"
+            echo "found=true" >> "$GITHUB_OUTPUT"
+          else
+            files=( *.slnx *.sln )
+            if [ ${#files[@]} -gt 0 ]; then
+              echo "target=${files[0]}" >> "$GITHUB_OUTPUT"
+              echo "found=true" >> "$GITHUB_OUTPUT"
+            else
+              echo "found=false" >> "$GITHUB_OUTPUT"
+              echo "No .NET solution file found yet. Skipping build and test."
+            fi
+          fi
+
+      - name: Restore dependencies
+        if: steps.detect.outputs.found == 'true'
+        run: dotnet restore "${{ steps.detect.outputs.target }}"
+
+      - name: Verify code formatting
+        if: steps.detect.outputs.found == 'true'
+        run: dotnet format "${{ steps.detect.outputs.target }}" --verify-no-changes
+
+      - name: Build solution
+        if: steps.detect.outputs.found == 'true'
+        run: dotnet build "${{ steps.detect.outputs.target }}" --no-restore --configuration Release
+
+      - name: Run tests
+        if: steps.detect.outputs.found == 'true'
+        run: dotnet test --solution "${{ steps.detect.outputs.target }}" --no-build --configuration Release --verbosity normal
