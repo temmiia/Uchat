@@ -1,5 +1,7 @@
 <Solution>
-  <Folder Name="/uchat/">
-    <Project Path="uchat/UChat.App/UChat.App.csproj" />
+  <Folder Name="/uchat_server/">
+    <Project Path="uchat_server/UChat.Application/UChat.Application.csproj" />
+    <Project Path="uchat_server/UChat.Domain/UChat.Domain.csproj" />
+    <Project Path="uchat_server/UChat.Server/UChat.Server.csproj" />
   </Folder>
 </Solution>

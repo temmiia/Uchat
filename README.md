@@ -3,175 +3,88 @@ dotnet new sln -n uchat
 dotnet new avalonia.mvvm -o .\uchat\UChat.App
 dotnet sln .\uchat.sln add .\uchat\UChat.App\UChat.App.csprojdotnet run --project .\uchat\UChat.App\UChat.App.csproj# UChat
 
-**UChat** is a C#/.NET desktop client-server messenger featuring private and group chats, real-time messaging, and server-side message history.
+Цей репозиторій містить спроєктовану схему реляційної бази даних, доменні моделі, конфігурації Entity Framework Core 10 (SQLite) та тестове покриття для клієнт-серверного месенджера **UChat**.
 
-> **Status:** Technical concept / MVP development. The features below describe requirements and plans, not necessarily completed functionality.
+---
 
-## Project Goal
+## 1. Вимоги та реалізовані сутності
 
-Build a simple, reliable messenger where users can register, find others by `username`, exchange messages, and recover their conversation history after a restart or connection loss. The server handles authentication, authorization, and data storage.
+Згідно з технічним завданням спроєктовано 4 ключові таблиці з обов'язковими ідентифікаторами та атрибутами:
 
-## Technology Stack
+| Таблиця | Первинний ключ | Зовнішні ключі / Індекси | Основні поля |
+| :--- | :--- | :--- | :--- |
+| **`Users`** | **`AccountId`** (string, PK, Immutable) | `UserName` (Unique Index) | `UserName`, `DisplayName`, `PasswordHash`, `AvatarUrl`, `Bio`, `CreatedAtUtc`, `UpdatedAtUtc` |
+| **`Conversations`** | **`ConversationId`** (Guid, PK) | — | `Type` (`Direct` / `Group`), `Title`, `CreatedAtUtc`, `UpdatedAtUtc` |
+| **`Members`** | **`MemberId`** (Guid, PK) | `FK -> Conversations`, `FK -> Users` | `AccountId`, `ConversationId`, `Role` (`Owner` / `Admin` / `Member`), `JoinedAtUtc` |
+| **`Messages`** | **`MessageId`** (Guid, PK) | `FK -> Conversations`, `FK -> Users` | `SenderAccountId`, `ConversationId`, `Content`, `CreatedAtUtc`, `EditedAtUtc`, `IsDeleted`, `ClientMessageId` |
 
-| Component | Technology |
-| --- | --- |
-| Language and platform | C#, .NET 10 LTS (`net10.0`) |
-| Desktop UI | Avalonia UI |
-| MVVM | CommunityToolkit.Mvvm |
-| HTTP API | ASP.NET Core Web API |
-| Real-time communication | ASP.NET Core SignalR |
-| Database | SQLite + Entity Framework Core |
-| Authentication | ASP.NET Core Identity or another proven implementation |
-| Testing | xUnit, TestServer / WebApplicationFactory |
-| CI | GitHub Actions |
-| Logging | Microsoft.Extensions.Logging |
+---
 
-SDK and dependency versions should be pinned in `global.json`, `Directory.Packages.props`, and/or `*.csproj` files. Use compatible stable package versions.
+## 2. Концепція та правила незмінності `AccountID`
 
-## MVP Features (Version 0.1.0)
+1. **Призначення `AccountId`**:
+   - Задається виключно **один раз під час реєстрації** користувача.
+   - **Ніколи не змінюється за жодних обставин**.
+   - Навіть якщо користувач змінює свій публічний нікнейм (`UserName`) або відображуване ім'я (`DisplayName`), історія листування, авторство повідомлень і членство в групах не порушуються.
+2. **Трьохрівневий захист від зміни**:
+   - **Domain Model**: властивість `AccountId` має специфікатор `{ get; private init; }`.
+   - **EF Core Metadata**: `builder.Property(u => u.AccountId).Metadata.SetAfterSaveBehavior(PropertySaveBehavior.Throw);`.
+   - **ChangeTracker Interceptor**: перевірка в `AppDbContext.SaveChanges()` та `SaveChangesAsync()`, яка негайно генерує `InvalidOperationException` при спробі підміни значення.
 
-- Registration, login, and logout; unique `username`, display name, and profile.
-- User lookup by `username` and private conversations.
-- Real-time messaging via SignalR, including sender and timestamp.
-- Persistent server-side message history.
-- Editing and deleting **only your own** messages.
-- Reconnection and retrieval of missed messages without duplicates.
-- Group creation, adding members, and group messaging.
-- Authorization checks for HTTP API requests and SignalR commands.
-- Support for two simultaneous clients and history persistence across server restarts.
+Повна специфікація та діаграма зв'язків: [docs/DATABASE.md](docs/DATABASE.md).
 
-Planned post-MVP features include advanced session management, backups, one-time invitation codes, UI improvements, reactions, attachments, and more.
+---
 
-## Architecture
+## 3. Автономне розгортання в один клік (SQLite + WAL)
 
-UChat follows a **modular monolith** architecture: one server application with separate API, application logic, domain, and infrastructure layers. The desktop client manages the UI, local settings, and network communication.
+Клас `DatabaseInitializer.InitializeAsync(context)` гарантує автоматичну підготовку бази даних при першому запуску:
+- Створення таблиць та індексів (`EnsureCreatedAsync`).
+- Вмикання режиму високої конкурентності: `PRAGMA journal_mode = WAL;`.
+- Вмикання перевірки посилальної цілісності: `PRAGMA foreign_keys = ON;`.
+- Ізольована ідемпотентність повідомлень через унікальний індекс `(ConversationId, SenderAccountId, ClientMessageId)`.
+- Нормалізація дати й часу в UTC (`UtcDateTimeConverter`).
+
+---
+
+## 4. Структура проєкту
 
 ```text
 /
-├── uchat/
-│   ├── UChat.App/                 # Avalonia UI, Views, ViewModels
-│   ├── UChat.Core/                # DTOs, client models, interfaces
-│   ├── UChat.Infrastructure/      # HTTP/SignalR client, settings
-│   └── tests/                     # Client tests
+├── docs/
+│   └── DATABASE.md                         # Детальна специфікація БД, ERD та правила AccountID
 ├── uchat_server/
-│   ├── UChat.Server/              # ASP.NET Core API, SignalR Hub, CLI
-│   ├── UChat.Application/         # Application use cases
-│   ├── UChat.Domain/              # Entities and business rules
-│   ├── UChat.Infrastructure/      # EF Core, SQLite, migrations
-│   └── tests/                     # Server tests
-├── uchat.sln
-├── global.json
-├── Directory.Packages.props       # If central package management is used
-├── .editorconfig
-├── .gitignore
-└── README.md
+│   ├── UChat.Domain/                       # Сутності: User, Conversation, ConversationMember, Message
+│   │   ├── Entities/                       # User.cs, Conversation.cs, ConversationMember.cs, Message.cs
+│   │   └── Enums/                          # ConversationType.cs, MemberRole.cs
+│   ├── UChat.Server.Infrastructure/        # EF Core AppDbContext, Configurations, DatabaseInitializer
+│   │   ├── Configurations/                 # Fluent API конфігурації для кожної сутності
+│   │   └── Data/                           # AppDbContext.cs, DatabaseInitializer.cs
+│   └── tests/
+│       └── UChat.Database.Tests/           # Модульні та інтеграційні тести бази даних
+├── uchat.sln                               # Рішення .NET 10
+├── global.json                             # Фіксація .NET 10 SDK
+├── .editorconfig                           # Стиль коду C#
+├── .gitattributes                          # Нормалізація кінців рядків (LF)
+└── .gitignore                              # Ігнорування артефактів збірки та локальних БД
 ```
 
-> This is the **proposed repository structure** from the technical concept. Confirm actual project names, test assemblies, and commands against the source code once created.
+---
 
-### Message Delivery Flow
+## 5. Збірка та тестування бази даних
 
-1. The client sends a command containing `ConversationId`, message text, and a unique `ClientMessageId` (idempotency key).
-2. The server validates the session, conversation membership, permissions, and input data.
-3. The server saves the message in SQLite and assigns `CreatedAt` in UTC.
-4. **Only after successful persistence**, the server broadcasts a SignalR event to conversation participants.
-5. After reconnecting, the client fetches missed messages and merges them by `MessageId` to avoid duplicates.
-
-## Development Prerequisites
-
-- **.NET 10 SDK** compatible with `global.json`.
-- Git.
-- A C# IDE or editor (for example, Rider or Visual Studio).
-- NuGet access to restore dependencies.
-
-## Build and Run
-
-The following commands assume the proposed project structure. They will work once the corresponding `.csproj` files, configuration, and application entry points are implemented.
-
+### Збірка рішення:
 ```bash
-# From the repository root
-dotnet restore uchat.sln
-
-# Verify the Release build
 dotnet build uchat.sln -c Release -m
-
-# Start the server in a separate terminal
-dotnet run --project uchat_server/UChat.Server
-
-# Start the desktop client
-dotnet run --project uchat/UChat.App
 ```
 
-To test communication between two clients, launch the desktop client twice if supported by the implementation. The server address, ports, SQLite database path, and secret configuration must be documented once implemented; the technical concept does not specify exact values.
-
-## Testing and Code Quality
-
+### Запуск тестів бази даних:
 ```bash
-dotnet format uchat.sln --verify-no-changes
-dotnet build uchat.sln -c Release -m
 dotnet test uchat.sln -c Release --no-build
 ```
 
-Important test scenarios include registration and login, incorrect passwords, message exchange between two clients, persistence after server restart, reconnect, rejection of edits/deletions by non-authors, and denial of group history access to non-members.
-
-Planned GitHub Actions CI pipeline:
-
-`checkout → setup-dotnet → restore → format check → Release build → tests → dependency/security scan`
-
-The technical concept also sets a target of **under 30 seconds** for a build in the evaluation environment; this must be verified through measurement.
-
-## Security and Privacy
-
-- Use HTTPS/TLS for API and SignalR in network deployments.
-- Store passwords using proven password hashing; do not invent custom cryptography.
-- Enforce authorization on every HTTP request and SignalR command.
-- Allow only conversation members to access group history and events.
-- Allow only the author to edit or delete a message.
-- Never log passwords, tokens, keys, or message contents.
-- Keep secrets in environment variables or a secret store, not in Git.
-- Manage database schema changes through EF Core migrations and plan for backups.
-
-**Important:** TLS protects data in transit but **does not provide end-to-end encryption (E2EE)**. UChat must not claim E2EE support unless it has been implemented and independently reviewed.
-
-## Git Workflow and Conventions
-
-The `main` branch is protected: direct commits are not allowed. Changes should be developed in feature branches, reviewed in pull requests, and merged only after CI passes.
-
-Branch naming format: `type/issue-short-description`. Examples:
-
-```text
-feat/42-private-chats
-fix/63-empty-message-validation
-test/84-chat-permissions
-chore/12-editorconfig
-```
-
-Use **Conventional Commits**: `type(scope): short description`. Commit subjects must be in English, no longer than 72 characters, and must not end with a period.
-
-```text
-feat(chat): add private messaging
-fix(auth): validate expired tokens
-test(groups): cover unauthorized access
-docs(readme): describe local setup
-ci(build): add release checks
-```
-
-Supported types: `feat`, `fix`, `refactor`, `test`, `docs`, `style`, `perf`, `chore`, `build`, `ci`. Before opening a pull request, verify formatting, build, tests, and absence of committed secrets.
-
-## Release Roadmap
-
-| Version | Planned scope |
-| --- | --- |
-| `0.1.0` MVP | Accounts, private/group chats, history, real-time messaging, reconnect, edit/delete, authorization |
-| `0.2.0` Hardening | Stronger security, session management, audit logging, backup/restore |
-| `0.3.0` Groups+ | Advanced roles, membership management, invitations |
-| `0.4.0` UX/UI | History search, presence, typing indicators, themes, keyboard shortcuts |
-| Later | Attachments, reactions, replies; E2EE only after a dedicated cryptographic review |
-
-## Team Collaboration
-
-According to the technical concept, the six-person team consists of a Team Lead, a Tech Lead, two Backend Developers, a Client/UI Developer, and a QA/Automation/DevOps Engineer. Discord is the primary communication channel; an issue tracker manages tasks; GitHub/GitLab hosts code and reviews. Short sync meetings are held every two days, and API/architecture decisions are documented.
-
-## Documentation Status
-
-This README is based on the UChat technical concept. Update the setup instructions, configuration details, actual test project names, and feature completion status as implementation progresses.
+Тести покривають:
+- Незмінність `AccountId` та унікальність `UserName`.
+- Зв'язки між бесідами (`Conversations`), учасниками (`Members`) та повідомленнями (`Messages`).
+- Каскадне видалення бесіди зі збереженням облікових записів авторів (`Restrict`).
+- М'яке видалення повідомлень (`Soft Delete`).
+- Активацію режимів SQLite `WAL` та `foreign_keys`.
