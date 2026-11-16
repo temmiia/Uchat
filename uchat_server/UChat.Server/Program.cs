@@ -1,23 +1,21 @@
-using Microsoft.AspNetCore.Identity;
-using UChat.Application.Auth;
-using UChat.Domain.Entities;
-
 var builder = WebApplication.CreateBuilder(args);
 
-builder.Services.AddControllers();
-
-builder.Services.AddScoped<RegisterUserService>();
-
-builder.Services.AddScoped<
-    IPasswordHasher<User>,
-    PasswordHasher<User>>();
+builder.Services.AddOpenApi();
 
 var app = builder.Build();
 
-app.UseHttpsRedirection();
+if (app.Environment.IsDevelopment())
+{
+    app.MapOpenApi();
+}
 
-app.MapControllers();
+app.MapGet("/health", () =>
+{
+    return Results.Ok(new
+    {
+        Status = "Healthy",
+        Service = "UChat.Server"
+    });
+});
 
 app.Run();
-
-public partial class Program { }
