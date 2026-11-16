@@ -1,3 +1,4 @@
+
 using Microsoft.AspNetCore.Identity;
 using UChat.Application.Abstractions;
 using UChat.Domain.Entities;
@@ -46,13 +47,16 @@ public sealed class RegisterUserService
             throw new InvalidOperationException(
                 "Username is already taken.");
 
-        var user = new User
-        {
-            Username = username,
-            NormalizedUsername = normalizedUsername,
-            DisplayName = request.DisplayName.Trim(),
-            PasswordHash = string.Empty
-        };
+        string accountId = Guid.NewGuid().ToString("N");
+        string displayName = request.DisplayName.Trim();
+
+        // Create a temporary user for password hashing.
+        // The constructor requires a non-empty password hash.
+        var user = new User(
+            accountId,
+            username,
+            displayName,
+            "PENDING_HASH");
 
         user.PasswordHash =
             _passwordHasher.HashPassword(user, request.Password);

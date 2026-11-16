@@ -1,3 +1,4 @@
+
 using Microsoft.AspNetCore.Mvc;
 using UChat.Application.Auth;
 
@@ -26,8 +27,8 @@ public sealed class AuthController : ControllerBase
                 cancellationToken);
 
             var response = new RegisterResponse(
-                user.Id,
-                user.Username,
+                user.AccountId,
+                user.UserName,
                 user.DisplayName);
 
             return StatusCode(
