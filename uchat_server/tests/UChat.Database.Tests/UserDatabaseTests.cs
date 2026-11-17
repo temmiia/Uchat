@@ -25,9 +25,9 @@ public class UserDatabaseTests
         };
 
         context.Users.Add(user);
-        await context.SaveChangesAsync();
+        await context.SaveChangesAsync(TestContext.Current.CancellationToken);
 
-        var retrieved = await context.Users.FirstOrDefaultAsync(u => u.AccountId == "acc_usr_12345");
+        var retrieved = await context.Users.FirstOrDefaultAsync(u => u.AccountId == "acc_usr_12345", cancellationToken: TestContext.Current.CancellationToken);
 
         Assert.NotNull(retrieved);
         Assert.Equal("acc_usr_12345", retrieved.AccountId);
@@ -47,7 +47,7 @@ public class UserDatabaseTests
 
         var user = new User("acc_permanent_id_1", "john_doe", "John Doe", "hashed_pwd");
         context.Users.Add(user);
-        await context.SaveChangesAsync();
+        await context.SaveChangesAsync(TestContext.Current.CancellationToken);
 
         // Попытка изменить AccountId у сохраненного пользователя должна приводить к ошибке
         var entry = context.Entry(user);
@@ -71,11 +71,11 @@ public class UserDatabaseTests
         var user2 = new User("acc_002", "same_username", "Second User", "hash2");
 
         context.Users.Add(user1);
-        await context.SaveChangesAsync();
+        await context.SaveChangesAsync(TestContext.Current.CancellationToken);
 
         context.Users.Add(user2);
 
-        await Assert.ThrowsAsync<DbUpdateException>(() => context.SaveChangesAsync());
+        await Assert.ThrowsAsync<DbUpdateException>(() => context.SaveChangesAsync(TestContext.Current.CancellationToken));
     }
 
     [Fact]
@@ -88,13 +88,13 @@ public class UserDatabaseTests
 
         var user = new User("acc_display_test", "tester", "Old Name", "hash");
         context.Users.Add(user);
-        await context.SaveChangesAsync();
+        await context.SaveChangesAsync(TestContext.Current.CancellationToken);
 
         user.DisplayName = "New Name";
         user.UpdatedAtUtc = DateTime.UtcNow;
-        await context.SaveChangesAsync();
+        await context.SaveChangesAsync(TestContext.Current.CancellationToken);
 
-        var updated = await context.Users.AsNoTracking().FirstOrDefaultAsync(u => u.AccountId == "acc_display_test");
+        var updated = await context.Users.AsNoTracking().FirstOrDefaultAsync(u => u.AccountId == "acc_display_test", cancellationToken: TestContext.Current.CancellationToken);
         Assert.NotNull(updated);
         Assert.Equal("New Name", updated.DisplayName);
     }

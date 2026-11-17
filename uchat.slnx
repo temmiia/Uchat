@@ -2,6 +2,10 @@
   <Folder Name="/uchat_server/">
     <Project Path="uchat_server/UChat.Application/UChat.Application.csproj" />
     <Project Path="uchat_server/UChat.Domain/UChat.Domain.csproj" />
+    <Project Path="uchat_server/UChat.Server.Infrastructure/UChat.Server.Infrastructure.csproj" />
     <Project Path="uchat_server/UChat.Server/UChat.Server.csproj" />
+  </Folder>
+  <Folder Name="/uchat_server/tests/">
+    <Project Path="uchat_server/tests/UChat.Database.Tests/UChat.Database.Tests.csproj" />
   </Folder>
 </Solution>
