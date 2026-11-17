@@ -12,16 +12,16 @@ namespace UChat.Server.Hubs;
 [Authorize]
 public sealed class ChatHub : Hub
 {
-   private readonly AppDbContext _dbContext;
-private readonly ChatEventPublisher _eventPublisher;
+    private readonly AppDbContext _dbContext;
+    private readonly ChatEventPublisher _eventPublisher;
 
-public ChatHub(
-    AppDbContext dbContext,
-    ChatEventPublisher eventPublisher)
-{
-    _dbContext = dbContext;
-    _eventPublisher = eventPublisher;
-}
+    public ChatHub(
+        AppDbContext dbContext,
+        ChatEventPublisher eventPublisher)
+    {
+        _dbContext = dbContext;
+        _eventPublisher = eventPublisher;
+    }
     public async Task JoinConversation(Guid conversationId)
     {
         var accountId = Context.User?.FindFirstValue(
@@ -65,63 +65,63 @@ public ChatHub(
     Guid conversationId,
     string content,
     string? clientMessageId = null)
-{
-    var accountId = Context.User?.FindFirst(
-        JwtRegisteredClaimNames.Sub)?.Value;
-
-    if (string.IsNullOrWhiteSpace(accountId))
     {
-        throw new HubException("Unauthorized.");
-    }
+        var accountId = Context.User?.FindFirst(
+            JwtRegisteredClaimNames.Sub)?.Value;
 
-    if (conversationId == Guid.Empty)
-    {
-        throw new HubException("Invalid conversation ID.");
-    }
+        if (string.IsNullOrWhiteSpace(accountId))
+        {
+            throw new HubException("Unauthorized.");
+        }
 
-    if (string.IsNullOrWhiteSpace(content))
-    {
-        throw new HubException("Message cannot be empty.");
-    }
-    // Prevent excessively large messages.
-    if (content.Length > 4000)
-    {
-        throw new HubException("Message cannot exceed 4000 characters.");
-    }
+        if (conversationId == Guid.Empty)
+        {
+            throw new HubException("Invalid conversation ID.");
+        }
 
-// Validate the optional client-generated message identifier.
-if (clientMessageId is { Length: > 128 })
-{
-    throw new HubException("Client message ID is too long.");
-}
+        if (string.IsNullOrWhiteSpace(content))
+        {
+            throw new HubException("Message cannot be empty.");
+        }
+        // Prevent excessively large messages.
+        if (content.Length > 4000)
+        {
+            throw new HubException("Message cannot exceed 4000 characters.");
+        }
 
-    // Verify membership before allowing the user to send a message.
-    var isMember = await _dbContext.Members
-        .AsNoTracking()
-        .AnyAsync(member =>
-            member.ConversationId == conversationId &&
-            member.AccountId == accountId,
+        // Validate the optional client-generated message identifier.
+        if (clientMessageId is { Length: > 128 })
+        {
+            throw new HubException("Client message ID is too long.");
+        }
+
+        // Verify membership before allowing the user to send a message.
+        var isMember = await _dbContext.Members
+            .AsNoTracking()
+            .AnyAsync(member =>
+                member.ConversationId == conversationId &&
+                member.AccountId == accountId,
+                Context.ConnectionAborted);
+
+        if (!isMember)
+        {
+            throw new HubException("Access denied to this conversation.");
+        }
+
+        var message = new Message(
+        conversationId,
+        accountId,
+        content,
+        clientMessageId);
+
+        _dbContext.Messages.Add(message);
+
+        // Persist the message before notifying connected clients.
+        await _dbContext.SaveChangesAsync(Context.ConnectionAborted);
+
+        await _eventPublisher.PublishMessageCreatedAsync(
+            message,
             Context.ConnectionAborted);
-
-    if (!isMember)
-    {
-        throw new HubException("Access denied to this conversation.");
-    }
-    
-    var message = new Message(
-    conversationId,
-    accountId,
-    content,
-    clientMessageId);
-
-    _dbContext.Messages.Add(message);
-
-    // Persist the message before notifying connected clients.
-    await _dbContext.SaveChangesAsync(Context.ConnectionAborted);
-
-    await _eventPublisher.PublishMessageCreatedAsync(
-        message,
-        Context.ConnectionAborted);
     }
     public static string GetConversationGroup(Guid conversationId)
     {

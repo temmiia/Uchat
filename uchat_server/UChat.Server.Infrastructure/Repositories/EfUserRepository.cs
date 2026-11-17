@@ -35,10 +35,10 @@ public sealed class EfUserRepository : IUserRepository
     public Task<User?> GetByUsernameAsync(
     string normalizedUsername,
     CancellationToken cancellationToken = default)
-{
-    return _context.Users.FirstOrDefaultAsync(
-        user => user.UserName.ToUpper() == normalizedUsername,
-        cancellationToken);
-}
+    {
+        return _context.Users.FirstOrDefaultAsync(
+            user => user.UserName.ToUpper() == normalizedUsername,
+            cancellationToken);
+    }
 
 }
