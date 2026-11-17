@@ -1,4 +1,4 @@
-
+using System.IdentityModel.Tokens.Jwt;
 using Microsoft.AspNetCore.Identity;
 using UChat.Application.Abstractions;
 using UChat.Application.Auth;
@@ -11,11 +11,13 @@ using Microsoft.IdentityModel.Tokens;
 using UChat.Server.Services;
 using System.Threading.RateLimiting;
 using Microsoft.AspNetCore.RateLimiting;
+using UChat.Server.Hubs;
 
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddOpenApi();
 builder.Services.AddControllers();
+builder.Services.AddSignalR();
 builder.Services.AddScoped<LoginUserService>();
 builder.Services.AddDbContext<AppDbContext>();
 
@@ -44,8 +46,26 @@ builder.Services
     .AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     .AddJwtBearer(options =>
     {
+        options.MapInboundClaims = false;
+        options.Events = new JwtBearerEvents
+{
+    OnMessageReceived = context =>
+    {
+        // Read JWT from the query string only for SignalR connections.
+        var accessToken = context.Request.Query["access_token"];
+
+        if (!string.IsNullOrEmpty(accessToken) &&
+            context.HttpContext.Request.Path.StartsWithSegments("/hubs/chat"))
+        {
+            context.Token = accessToken;
+        }
+
+        return Task.CompletedTask;
+    }
+};
         options.TokenValidationParameters = new TokenValidationParameters
         {
+            NameClaimType = JwtRegisteredClaimNames.Sub,
             ValidateIssuer = true,
             ValidIssuer = jwtIssuer,
             ValidateAudience = true,
@@ -61,6 +81,7 @@ builder.Services
 builder.Services.AddAuthorization();
 
 builder.Services.AddScoped<JwtTokenService>();
+builder.Services.AddScoped<ChatEventPublisher>();
 
 
 builder.Services.AddRateLimiter(options =>
@@ -91,6 +112,7 @@ if (app.Environment.IsDevelopment())
 app.UseAuthentication();
 app.UseAuthorization();
 app.MapControllers();
+app.MapHub<ChatHub>("/hubs/chat");
 app.UseRateLimiter();
 
 app.MapGet("/health", () =>
