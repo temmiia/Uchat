@@ -25,12 +25,12 @@ public class ConversationAndMemberDatabaseTests
         var regularMembership = new ConversationMember(conversation.ConversationId, member.AccountId, MemberRole.Member);
         context.Members.AddRange(ownerMembership, regularMembership);
 
-        await context.SaveChangesAsync();
+        await context.SaveChangesAsync(TestContext.Current.CancellationToken);
 
         var retrievedConversation = await context.Conversations
             .Include(c => c.Members)
             .ThenInclude(m => m.User)
-            .FirstOrDefaultAsync(c => c.ConversationId == conversation.ConversationId);
+            .FirstOrDefaultAsync(c => c.ConversationId == conversation.ConversationId, cancellationToken: TestContext.Current.CancellationToken);
 
         Assert.NotNull(retrievedConversation);
         Assert.Equal("Design Team Chat", retrievedConversation.Title);
@@ -57,10 +57,10 @@ public class ConversationAndMemberDatabaseTests
         var member2 = new ConversationMember(conversation.ConversationId, user.AccountId, MemberRole.Member);
 
         context.Members.Add(member1);
-        await context.SaveChangesAsync();
+        await context.SaveChangesAsync(TestContext.Current.CancellationToken);
 
         context.Members.Add(member2);
 
-        await Assert.ThrowsAsync<DbUpdateException>(() => context.SaveChangesAsync());
+        await Assert.ThrowsAsync<DbUpdateException>(() => context.SaveChangesAsync(TestContext.Current.CancellationToken));
     }
 }

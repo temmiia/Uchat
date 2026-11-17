@@ -1,4 +1,4 @@
-﻿namespace UChat.Domain;
+namespace UChat.Domain;
 
 public class Class1
 {
