@@ -8,10 +8,12 @@
 
   <ItemGroup>
     <PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite" Version="10.0.0" />
+    <PackageReference Include="SQLitePCLRaw.bundle_e_sqlite3" Version="3.0.5" />
   </ItemGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\UChat.Domain\UChat.Domain.csproj" />
+    <ProjectReference Include="..\UChat.Application\UChat.Application.csproj" />
   </ItemGroup>
 
 </Project>
