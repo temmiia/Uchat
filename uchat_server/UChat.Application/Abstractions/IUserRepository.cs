@@ -11,4 +11,8 @@ public interface IUserRepository
     Task CreateAsync(
         User user,
         CancellationToken cancellationToken = default);
+
+    Task<User?> GetByUsernameAsync(
+    string normalizedUsername,
+    CancellationToken cancellationToken = default);
 }
