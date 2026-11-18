@@ -5,7 +5,7 @@ using UChat.Infrastructure.Configurations;
 
 namespace UChat.Infrastructure.Data;
 
-// Контекст базы данных EF Core для UChat
+// Main EF Core database context for UChat
 public class AppDbContext : DbContext
 {
     public AppDbContext()
@@ -37,13 +37,13 @@ public class AppDbContext : DbContext
     {
         base.OnModelCreating(modelBuilder);
 
-        // Применяем настройки каждой сущности
+        // Apply entity configurations
         modelBuilder.ApplyConfiguration(new UserConfiguration());
         modelBuilder.ApplyConfiguration(new ConversationConfiguration());
         modelBuilder.ApplyConfiguration(new ConversationMemberConfiguration());
         modelBuilder.ApplyConfiguration(new MessageConfiguration());
 
-        // Нормализация DateTime: SQLite не сохраняет таймзону, поэтому принудительно задаем Utc
+        // Value converter for DateTime to guarantee UTC DateTimeKind upon read from SQLite
         var utcConverter = new ValueConverter<DateTime, DateTime>(
             v => v.ToUniversalTime(),
             v => DateTime.SpecifyKind(v, DateTimeKind.Utc));
@@ -80,7 +80,7 @@ public class AppDbContext : DbContext
         return base.SaveChangesAsync(cancellationToken);
     }
 
-    // 3-й уровень защиты: перехватчик в SaveChanges, проверяющий неизменность AccountId
+    // 3rd layer of defense: interceptor ensuring AccountId can never be tampered with
     private void ValidateAccountIdImmutability()
     {
         var modifiedUsers = ChangeTracker.Entries<User>()

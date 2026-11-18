@@ -1,4 +1,3 @@
-
 using Microsoft.EntityFrameworkCore;
 using UChat.Application.Abstractions;
 using UChat.Domain.Entities;
@@ -33,12 +32,31 @@ public sealed class EfUserRepository : IUserRepository
     }
 
     public Task<User?> GetByUsernameAsync(
-    string normalizedUsername,
-    CancellationToken cancellationToken = default)
-{
-    return _context.Users.FirstOrDefaultAsync(
-        user => user.UserName.ToUpper() == normalizedUsername,
-        cancellationToken);
-}
+        string normalizedUsername,
+        CancellationToken cancellationToken = default)
+    {
+        return _context.Users.FirstOrDefaultAsync(
+            user => user.UserName.ToUpper() == normalizedUsername,
+            cancellationToken);
+    }
 
+    public async Task<IReadOnlyList<User>> SearchByUsernameAsync(
+        string query,
+        int limit = 20,
+        CancellationToken cancellationToken = default)
+    {
+        if (string.IsNullOrWhiteSpace(query))
+        {
+            return Array.Empty<User>();
+        }
+
+        var normalized = query.ToUpper();
+
+        return await _context.Users
+            .AsNoTracking()
+            .Where(user => user.UserName.ToUpper().Contains(normalized))
+            .OrderBy(user => user.UserName)
+            .Take(limit)
+            .ToListAsync(cancellationToken);
+    }
 }

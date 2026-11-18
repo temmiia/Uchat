@@ -2,6 +2,8 @@ using System.IdentityModel.Tokens.Jwt;
 using Microsoft.AspNetCore.Identity;
 using UChat.Application.Abstractions;
 using UChat.Application.Auth;
+using UChat.Application.Messages;
+using UChat.Application.Users;
 using UChat.Domain.Entities;
 using UChat.Infrastructure.Data;
 using UChat.Infrastructure.Repositories;
@@ -23,6 +25,10 @@ builder.Services.AddDbContext<AppDbContext>();
 
 builder.Services.AddScoped<IUserRepository, EfUserRepository>();
 builder.Services.AddScoped<RegisterUserService>();
+builder.Services.AddScoped<SearchUsersService>();
+
+builder.Services.AddScoped<IMessageRepository, EfMessageRepository>();
+builder.Services.AddScoped<MessageService>();
 
 builder.Services.AddScoped<IPasswordHasher<User>, PasswordHasher<User>>();
 
@@ -48,21 +54,21 @@ builder.Services
     {
         options.MapInboundClaims = false;
         options.Events = new JwtBearerEvents
-{
-    OnMessageReceived = context =>
-    {
-        // Read JWT from the query string only for SignalR connections.
-        var accessToken = context.Request.Query["access_token"];
-
-        if (!string.IsNullOrEmpty(accessToken) &&
-            context.HttpContext.Request.Path.StartsWithSegments("/hubs/chat"))
         {
-            context.Token = accessToken;
-        }
+            OnMessageReceived = context =>
+            {
+                // Read JWT from the query string only for SignalR connections.
+                var accessToken = context.Request.Query["access_token"];
 
-        return Task.CompletedTask;
-    }
-};
+                if (!string.IsNullOrEmpty(accessToken) &&
+                    context.HttpContext.Request.Path.StartsWithSegments("/hubs/chat"))
+                {
+                    context.Token = accessToken;
+                }
+
+                return Task.CompletedTask;
+            }
+        };
         options.TokenValidationParameters = new TokenValidationParameters
         {
             NameClaimType = JwtRegisteredClaimNames.Sub,
