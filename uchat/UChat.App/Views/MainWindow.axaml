@@ -1,67 +1,211 @@
 <Window xmlns="https://github.com/avaloniaui"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:vm="using:UChat.App.ViewModels"
+        xmlns:models="using:UChat.App.Models"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-        mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
+        mc:Ignorable="d" d:DesignWidth="1000" d:DesignHeight="650"
         x:Class="UChat.App.Views.MainWindow"
         x:DataType="vm:MainViewModel"
-        Icon="/Assets/avalonia-logo.ico"
-        Title="UChat.App"
+        Title="UChat"
+        MinWidth="760" MinHeight="500"
+        WindowDecorations="None"
         Background="{DynamicResource AppBgBrush}">
 
-    <Grid ColumnDefinitions="280, *">
+    <Window.Styles>
+        <Style Selector="Button.CaptionBtn">
+            <Setter Property="Width" Value="46"/>
+            <Setter Property="Height" Value="32"/>
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="Foreground" Value="#CDD6F4"/>
+            <Setter Property="CornerRadius" Value="0"/>
+            <Setter Property="Padding" Value="0"/>
+            <Setter Property="HorizontalContentAlignment" Value="Center"/>
+            <Setter Property="VerticalContentAlignment" Value="Center"/>
+        </Style>
 
-        <!-- Left sidebar -->
-        <Border Grid.Column="0" 
-                Background="{DynamicResource PanelBgBrush}" 
-                BorderBrush="{DynamicResource MagicBorderBrush}" 
-                BorderThickness="0,0,1,0">
-            <Grid RowDefinitions="Auto, *">
-                <!-- Search -->
-                <TextBox Grid.Row="0" Margin="10" Watermark="Search..." />
+        <Style Selector="Button.CaptionBtn:pointerover /template/ ContentPresenter">
+            <Setter Property="Background" Value="#20FFFFFF"/>
+        </Style>
 
-                <!-- Chat list -->
-                <ListBox Grid.Row="1" Background="Transparent" />
-            </Grid>
-        </Border>
+        <Style Selector="Button.CloseBtn:pointerover /template/ ContentPresenter">
+            <Setter Property="Background" Value="#E81123"/>
+        </Style>
 
-        <!-- Main content area -->
-        <Grid Grid.Column="1" RowDefinitions="60, *, Auto">
-            
-            <!-- header -->
-            <Border Grid.Row="0" 
-                    Background="{DynamicResource PanelBgBrush}" 
-                    BorderBrush="{DynamicResource MagicBorderBrush}" 
-                    BorderThickness="0,0,0,1"
-                    Padding="20,0">
-                <TextBlock Text="Name" 
-                           VerticalAlignment="Center" 
-                           FontSize="16" 
-                           FontWeight="SemiBold"/>
-            </Border>
-            
-            <!-- Messages area -->
-            <ScrollViewer Grid.Row="1" Padding="15">
-                <ItemsControl />
-            </ScrollViewer>
-            
-            <!-- Message input and send button -->
-            <Border Grid.Row="2" 
-                    Background="{DynamicResource PanelBgBrush}" 
-                    BorderBrush="{DynamicResource MagicBorderBrush}" 
-                    BorderThickness="0,1,0,0"
-                    Padding="10">
-                <Grid ColumnDefinitions="*, Auto">
-                    <TextBox Grid.Column="0" Watermark="Type a message..." Margin="0,0,10,0"/>
-                    <Button Grid.Column="1" 
-                            Content="Send" 
-                            Background="{DynamicResource MagicPurpleBrush}" 
-                            Foreground="White"/>
+        <Style Selector="Button.CloseBtn:pointerover">
+            <Setter Property="Foreground" Value="White"/>
+        </Style>
+    </Window.Styles>
+
+    <Grid RowDefinitions="32, *">
+        <!-- Власна верхня панель вікна -->
+        <Grid Grid.Row="0" Background="{DynamicResource AppBgBrush}" PointerPressed="OnTitleBarPointerPressed">
+            <TextBlock Text="UChat"
+                       Margin="14,0,0,0"
+                       VerticalAlignment="Center"
+                       FontSize="12"
+                       Opacity="0.6" />
+
+            <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                <!-- Згорнути  -->
+                <Button Classes="CaptionBtn" Click="OnMinimizeClick">
+                    <Viewbox Width="12" Height="12">
+                        <Path Stroke="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}"
+                              StrokeThickness="2" StrokeLineCap="Round"
+                              Data="M5 12 H19" />
+                    </Viewbox>
+                </Button>
+
+                <!-- Розгорнути / Відновити  -->
+                <Button Classes="CaptionBtn" Click="OnMaximizeClick">
+                    <Viewbox Width="12" Height="12">
+                        <Path Stroke="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}"
+                              StrokeThickness="2" StrokeLineCap="Round" StrokeJoin="Round"
+                              Data="M5 3 H19 A2 2 0 0 1 21 5 V19 A2 2 0 0 1 19 21 H5 A2 2 0 0 1 3 19 V5 A2 2 0 0 1 5 3 Z" />
+                    </Viewbox>
+                </Button>
+
+                <!-- Закрити  -->
+                <Button Classes="CaptionBtn CloseBtn" Click="OnCloseClick">
+                    <Viewbox Width="12" Height="12">
+                        <Path Stroke="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}"
+                              StrokeThickness="2" StrokeLineCap="Round"
+                              Data="M18 6 6 18 M6 6 18 18" />
+                    </Viewbox>
+                </Button>
+            </StackPanel>
+        </Grid>
+
+        <!-- Основний вміст вікна -->
+        <Grid Grid.Row="1" ColumnDefinitions="300,*">
+            <!-- Бічна панель містить заголовок, пошук і список доступних чатів. -->
+            <Border Grid.Column="0"
+                    Background="{DynamicResource PanelBgBrush}"
+                    BorderBrush="{DynamicResource MagicBorderBrush}"
+                    BorderThickness="0,0,1,0">
+                <Grid RowDefinitions="Auto,Auto,*">
+                    <!-- Заголовок і поле пошуку чатів. Значення пошуку оновлює список одразу. -->
+                    <TextBlock Grid.Row="0"
+                               Text="Messages"
+                               Margin="18,20,18,14"
+                               FontSize="22"
+                               FontWeight="SemiBold" />
+
+                    <TextBox Grid.Row="1"
+                             Margin="12,0,12,10"
+                             Padding="10,8"
+                             PlaceholderText="Search chats"
+                             Text="{Binding SearchText, UpdateSourceTrigger=PropertyChanged}" />
+
+                    <!-- Список відфільтрованих чатів; вибраний елемент визначає відкриту переписку. -->
+                    <ListBox Grid.Row="2"
+                             Background="Transparent"
+                             ItemsSource="{Binding VisibleChats}"
+                             SelectedItem="{Binding SelectedChat, Mode=TwoWay}">
+                        <!-- Шаблон одного чату: ініціали, ім'я, останнє повідомлення та час. -->
+                        <ListBox.ItemTemplate>
+                            <DataTemplate x:DataType="models:ChatPreview">
+                                <Border Padding="10" CornerRadius="10">
+                                    <Grid ColumnDefinitions="42,*" RowDefinitions="Auto,Auto">
+                                        <Border Grid.RowSpan="2"
+                                                Width="38" Height="38"
+                                                CornerRadius="19"
+                                                Background="{DynamicResource MagicPurpleBrush}"
+                                                VerticalAlignment="Center">
+                                            <TextBlock Text="{Binding AvatarInitials}"
+                                                       HorizontalAlignment="Center"
+                                                       VerticalAlignment="Center"
+                                                       FontWeight="SemiBold"
+                                                       Foreground="White" />
+                                        </Border>
+                                        <TextBlock Grid.Column="1"
+                                                   Text="{Binding Name}"
+                                                   Margin="5,0,0,0"
+                                                   FontWeight="SemiBold"
+                                                   TextTrimming="CharacterEllipsis" />
+                                        <TextBlock Grid.Row="1" Grid.Column="1"
+                                                   Text="{Binding LastMessage}"
+                                                   Margin="5,3,0,0"
+                                                   FontSize="12"
+                                                   Opacity="0.7"
+                                                   TextTrimming="CharacterEllipsis" />
+                                        <TextBlock Grid.Row="0" Grid.Column="1"
+                                                   Text="{Binding Time}"
+                                                   HorizontalAlignment="Right"
+                                                   FontSize="11"
+                                                   Opacity="0.6" />
+                                    </Grid>
+                                </Border>
+                            </DataTemplate>
+                        </ListBox.ItemTemplate>
+                    </ListBox>
                 </Grid>
             </Border>
 
-        </Grid>
+            <!-- Область відкритої переписки: заголовок, історія повідомлень і поле введення. -->
+            <Grid Grid.Column="1" RowDefinitions="68,*,Auto">
+                <!-- Ім'я співрозмовника або назва групи вибраного чату. -->
+                <Border Grid.Row="0"
+                        Background="{DynamicResource PanelBgBrush}"
+                        BorderBrush="{DynamicResource MagicBorderBrush}"
+                        BorderThickness="0,0,0,1"
+                        Padding="20,0">
+                    <TextBlock Text="{Binding SelectedChat.Name}"
+                               VerticalAlignment="Center"
+                               FontSize="17"
+                               FontWeight="SemiBold" />
+                </Border>
 
+                <!-- Історія повідомлень прокручується; вирівнювання кожного повідомлення задається моделлю. -->
+                <ScrollViewer Grid.Row="1" Padding="18">
+                    <ItemsControl ItemsSource="{Binding SelectedChat.Messages}">
+                        <!-- Бульбашка повідомлення з текстом і часом відправлення. -->
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate x:DataType="models:ChatMessage">
+                                <Border MaxWidth="520"
+                                        Margin="0, 5"
+                                        Padding="12,9"
+                                        CornerRadius="12"
+                                        Background="{DynamicResource PanelBgBrush}"
+                                        HorizontalAlignment="{Binding Alignment}">
+                                    <StackPanel Spacing="4">
+                                        <TextBlock Text="{Binding Text}" TextWrapping="Wrap" />
+                                        <TextBlock Text="{Binding Time}"
+                                                   FontSize="10"
+                                                   Opacity="0.65"
+                                                   HorizontalAlignment="Right" />
+                                    </StackPanel>
+                                </Border>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                </ScrollViewer>
+
+                <!-- Поле для нового повідомлення та кнопка відправлення. Enter виконує ту саму команду. -->
+                <Border Grid.Row="2"
+                        Background="{DynamicResource PanelBgBrush}"
+                        BorderBrush="{DynamicResource MagicBorderBrush}"
+                        BorderThickness="0,1,0,0"
+                        Padding="12">
+                    <Grid ColumnDefinitions="*,Auto">
+                        <TextBox Grid.Column="0"
+                                 PlaceholderText="Type a message..."
+                                 VerticalContentAlignment="Center"
+                                 Text="{Binding DraftText, UpdateSourceTrigger=PropertyChanged}">
+                            <TextBox.KeyBindings>
+                                <KeyBinding Gesture="Enter" Command="{Binding SendMessageCommand}" />
+                            </TextBox.KeyBindings>
+                        </TextBox>
+                        <Button Grid.Column="1"
+                                Margin="10,0,0,0"
+                                Padding="18,8"
+                                Content="Send"
+                                Command="{Binding SendMessageCommand}"
+                                Background="{DynamicResource MagicPurpleBrush}"
+                                Foreground="White" />
+                    </Grid>
+                </Border>
+            </Grid>
+        </Grid>
     </Grid>
 </Window>

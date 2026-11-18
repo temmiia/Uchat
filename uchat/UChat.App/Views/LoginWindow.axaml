@@ -2,19 +2,53 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         x:Class="UChat.App.Views.LoginWindow"
         Title="Log in - UChat"
-        Width="400"
-        Height="372"
+        Width="420"
+        Height="400"
         WindowDecorations="None"
-        WindowStartupLocation="CenterScreen">
+        WindowStartupLocation="CenterScreen"
+        Background="{DynamicResource AppBgBrush}">
     <Grid RowDefinitions="32,*">
-        <Border Grid.Row="0" Background="{DynamicResource PanelBgBrush}" PointerPressed="OnDragAreaPointerPressed">
-            <TextBlock Text="UChat" Margin="12,0" VerticalAlignment="Center" />
+        <Border Grid.Row="0"
+                Background="{DynamicResource PanelBgBrush}"
+                BorderBrush="{DynamicResource MagicBorderBrush}"
+                BorderThickness="0,0,0,1"
+                PointerPressed="OnDragAreaPointerPressed">
+            <TextBlock Text="UChat"
+                       Margin="12,0"
+                       VerticalAlignment="Center"
+                       Foreground="{DynamicResource NeonLavenderBrush}"
+                       FontWeight="SemiBold" />
         </Border>
-        <StackPanel Grid.Row="1" Margin="24" Spacing="12" VerticalAlignment="Center">
-            <TextBlock Text="Log in to UChat" FontSize="24" />
-            <TextBox PlaceholderText="Username" />
-            <TextBox PlaceholderText="Password" PasswordChar="●" />
-            <Button Content="Log in" Click="OnLoginClick" />
-        </StackPanel>
+        <Border Grid.Row="1"
+                Margin="24"
+                Padding="24"
+                Background="{DynamicResource PanelBgBrush}"
+                BorderBrush="{DynamicResource MagicBorderBrush}"
+                BorderThickness="1"
+                CornerRadius="14"
+                VerticalAlignment="Center">
+            <StackPanel Spacing="14">
+                <TextBlock Text="Log in to UChat"
+                           FontSize="24"
+                           FontWeight="SemiBold"
+                           Foreground="{DynamicResource NeonLavenderBrush}"
+                           Margin="0,0,0,4" />
+                <TextBox PlaceholderText="Username"
+                         Padding="10,8"
+                         Background="{DynamicResource AppBgBrush}"
+                         BorderBrush="{DynamicResource MagicBorderBrush}" />
+                <TextBox PlaceholderText="Password"
+                         PasswordChar="●"
+                         Padding="10,8"
+                         Background="{DynamicResource AppBgBrush}"
+                         BorderBrush="{DynamicResource MagicBorderBrush}" />
+                <Button Content="Log in"
+                        Margin="0,4,0,0"
+                        Padding="12,9"
+                        Background="{DynamicResource MagicPurpleBrush}"
+                        Foreground="White"
+                        Click="OnLoginClick" />
+            </StackPanel>
+        </Border>
     </Grid>
 </Window>
