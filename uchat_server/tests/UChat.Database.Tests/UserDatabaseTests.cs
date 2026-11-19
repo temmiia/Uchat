@@ -8,7 +8,7 @@ public class UserDatabaseTests
     [Fact]
     public async Task Can_Create_And_Persist_User_With_Required_Fields()
     {
-        // Проверяем создание пользователя со всеми обязательными и опциональными полями
+        // Verify user persistence with required and optional profile fields
         var (context, connection) = TestDbContextFactory.CreateInMemoryDbContext();
         await using var _ = connection;
         await using var __ = context;
@@ -40,7 +40,7 @@ public class UserDatabaseTests
     [Fact]
     public async Task AccountId_Is_Immutable_And_Throws_On_Modification_Attempt()
     {
-        // Проверяем неизменность AccountId (требование ТЗ)
+        // Verify AccountId immutability invariant
         var (context, connection) = TestDbContextFactory.CreateInMemoryDbContext();
         await using var _ = connection;
         await using var __ = context;
@@ -49,7 +49,7 @@ public class UserDatabaseTests
         context.Users.Add(user);
         await context.SaveChangesAsync(TestContext.Current.CancellationToken);
 
-        // Попытка изменить AccountId у сохраненного пользователя должна приводить к ошибке
+        // Attempting to modify AccountId on an existing user entity must throw
         var entry = context.Entry(user);
         var exception = Assert.Throws<InvalidOperationException>(() =>
         {
@@ -62,7 +62,7 @@ public class UserDatabaseTests
     [Fact]
     public async Task Duplicate_UserName_Throws_DbUpdateException()
     {
-        // Проверяем уникальность UserName
+        // Verify unique constraint on UserName
         var (context, connection) = TestDbContextFactory.CreateInMemoryDbContext();
         await using var _ = connection;
         await using var __ = context;
@@ -81,7 +81,7 @@ public class UserDatabaseTests
     [Fact]
     public async Task DisplayName_Can_Be_Updated_Successfully()
     {
-        // Проверяем, что DisplayName можно обновлять в отличие от AccountId
+        // Unlike AccountId, DisplayName can be updated freely
         var (context, connection) = TestDbContextFactory.CreateInMemoryDbContext();
         await using var _ = connection;
         await using var __ = context;

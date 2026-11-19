@@ -29,6 +29,7 @@ public sealed class ChatEventPublisher
                     message.SenderAccountId,
                     message.Content,
                     message.CreatedAtUtc,
+                    message.ServerReceivedAtUtc,
                     message.ClientMessageId
                 },
                 cancellationToken);

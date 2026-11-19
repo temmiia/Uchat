@@ -20,7 +20,7 @@ public class MessageDatabaseTests
         context.Members.Add(new ConversationMember(conversation.ConversationId, sender.AccountId, MemberRole.Owner));
         await context.SaveChangesAsync(TestContext.Current.CancellationToken);
 
-        // 1. Отправка сообщения
+        // 1. Create message
         var message = new Message(
             conversation.ConversationId,
             sender.AccountId,
@@ -41,7 +41,7 @@ public class MessageDatabaseTests
         Assert.False(retrieved.IsDeleted);
         Assert.Null(retrieved.EditedAtUtc);
 
-        // 2. Редактирование текста сообщения
+        // 2. Edit message
         retrieved.EditContent("Hello world (edited)!");
         await context.SaveChangesAsync(TestContext.Current.CancellationToken);
 
@@ -51,7 +51,7 @@ public class MessageDatabaseTests
         Assert.NotNull(edited.EditedAtUtc);
         Assert.False(edited.IsDeleted);
 
-        // 3. Мягкое удаление (помечаем как удаленное и затираем текст)
+        // 3. Soft delete message
         retrieved.MarkAsDeleted();
         await context.SaveChangesAsync(TestContext.Current.CancellationToken);
 
@@ -64,7 +64,7 @@ public class MessageDatabaseTests
     [Fact]
     public async Task Messages_Are_Retrieved_In_Chronological_Order()
     {
-        // Проверяем сортировку сообщений по дате создания
+        // Verify chronological ordering of messages in a conversation
         var (context, connection) = TestDbContextFactory.CreateInMemoryDbContext();
         await using var _ = connection;
         await using var __ = context;

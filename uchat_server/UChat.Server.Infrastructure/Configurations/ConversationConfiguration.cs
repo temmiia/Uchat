@@ -4,7 +4,7 @@ using UChat.Domain.Entities;
 
 namespace UChat.Infrastructure.Configurations;
 
-// Конфигурация сущности Conversation для EF Core
+// EF Core configuration for Conversation
 public class ConversationConfiguration : IEntityTypeConfiguration<Conversation>
 {
     public void Configure(EntityTypeBuilder<Conversation> builder)

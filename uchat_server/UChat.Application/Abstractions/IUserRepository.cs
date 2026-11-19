@@ -13,6 +13,11 @@ public interface IUserRepository
         CancellationToken cancellationToken = default);
 
     Task<User?> GetByUsernameAsync(
-    string normalizedUsername,
-    CancellationToken cancellationToken = default);
+        string normalizedUsername,
+        CancellationToken cancellationToken = default);
+
+    Task<IReadOnlyList<User>> SearchByUsernameAsync(
+        string query,
+        int limit = 20,
+        CancellationToken cancellationToken = default);
 }

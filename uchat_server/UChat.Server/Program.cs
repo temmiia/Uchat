@@ -2,6 +2,8 @@ using System.IdentityModel.Tokens.Jwt;
 using Microsoft.AspNetCore.Identity;
 using UChat.Application.Abstractions;
 using UChat.Application.Auth;
+using UChat.Application.Messages;
+using UChat.Application.Users;
 using UChat.Domain.Entities;
 using UChat.Infrastructure.Data;
 using UChat.Infrastructure.Repositories;
@@ -23,6 +25,10 @@ builder.Services.AddDbContext<AppDbContext>();
 
 builder.Services.AddScoped<IUserRepository, EfUserRepository>();
 builder.Services.AddScoped<RegisterUserService>();
+builder.Services.AddScoped<SearchUsersService>();
+
+builder.Services.AddScoped<IMessageRepository, EfMessageRepository>();
+builder.Services.AddScoped<MessageService>();
 
 builder.Services.AddScoped<IPasswordHasher<User>, PasswordHasher<User>>();
 

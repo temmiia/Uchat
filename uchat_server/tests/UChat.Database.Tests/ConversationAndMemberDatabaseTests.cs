@@ -9,7 +9,7 @@ public class ConversationAndMemberDatabaseTests
     [Fact]
     public async Task Can_Create_Conversation_And_Add_Members_With_Roles()
     {
-        // Создаем групповой чат и добавляем участников с ролями Owner и Member
+        // Create conversation and add members with Owner and Member roles
         var (context, connection) = TestDbContextFactory.CreateInMemoryDbContext();
         await using var _ = connection;
         await using var __ = context;
@@ -43,7 +43,7 @@ public class ConversationAndMemberDatabaseTests
     [Fact]
     public async Task Duplicate_User_In_Same_Conversation_Throws_DbUpdateException()
     {
-        // Проверяем, что один и тот же юзер не может быть добавлен в одну беседу дважды
+        // A user cannot be added twice to the same conversation
         var (context, connection) = TestDbContextFactory.CreateInMemoryDbContext();
         await using var _ = connection;
         await using var __ = context;

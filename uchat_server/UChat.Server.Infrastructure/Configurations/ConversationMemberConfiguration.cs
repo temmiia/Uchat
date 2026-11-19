@@ -4,7 +4,7 @@ using UChat.Domain.Entities;
 
 namespace UChat.Infrastructure.Configurations;
 
-// Конфигурация сущности ConversationMember для EF Core
+// EF Core configuration for ConversationMember (Members table)
 public class ConversationMemberConfiguration : IEntityTypeConfiguration<ConversationMember>
 {
     public void Configure(EntityTypeBuilder<ConversationMember> builder)
@@ -28,19 +28,19 @@ public class ConversationMemberConfiguration : IEntityTypeConfiguration<Conversa
         builder.Property(m => m.JoinedAtUtc)
             .IsRequired();
 
-        // Пользователь может быть в беседе только один раз
+        // A user can only join a conversation once
         builder.HasIndex(m => new { m.ConversationId, m.AccountId })
             .IsUnique();
 
         builder.HasIndex(m => m.AccountId);
 
-        // Каскадное удаление участников при удалении беседы
+        // Cascade delete membership records when conversation is removed
         builder.HasOne(m => m.Conversation)
             .WithMany(c => c.Members)
             .HasForeignKey(m => m.ConversationId)
             .OnDelete(DeleteBehavior.Cascade);
 
-        // При удалении беседы аккаунт пользователя не трогаем (Restrict)
+        // Do not delete user account when conversation is removed (Restrict)
         builder.HasOne(m => m.User)
             .WithMany(u => u.Memberships)
             .HasForeignKey(m => m.AccountId)
