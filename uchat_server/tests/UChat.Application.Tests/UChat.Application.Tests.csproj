@@ -1,0 +1,27 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <IsPackable>false</IsPackable>
+    <OutputType>Exe</OutputType>
+    <UseMicrosoftTestingPlatformRunner>true</UseMicrosoftTestingPlatformRunner>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="xunit.v3" Version="4.0.3" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Using Include="Xunit" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\UChat.Domain\UChat.Domain.csproj" />
+    <ProjectReference Include="..\..\UChat.Application\UChat.Application.csproj" />
+    <ProjectReference Include="..\..\UChat.Server.Infrastructure\UChat.Server.Infrastructure.csproj" />
+    <ProjectReference Include="..\UChat.Database.Tests\UChat.Database.Tests.csproj" />
+  </ItemGroup>
+
+</Project>

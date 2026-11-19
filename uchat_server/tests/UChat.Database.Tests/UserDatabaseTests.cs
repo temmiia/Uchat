@@ -98,4 +98,24 @@ public class UserDatabaseTests
         Assert.NotNull(updated);
         Assert.Equal("New Name", updated.DisplayName);
     }
+
+    [Fact]
+    public async Task Duplicate_UserName_With_Different_Case_Throws_DbUpdateException()
+    {
+        var (context, connection) = TestDbContextFactory.CreateInMemoryDbContext();
+        await using var _ = connection;
+        await using var __ = context;
+
+        var user1 = new User("acc_001", "alexandr", "First User", "hash1");
+        var user2 = new User("acc_002", "Alexandr", "Second User", "hash2");
+
+        context.Users.Add(user1);
+        await context.SaveChangesAsync(TestContext.Current.CancellationToken);
+
+        context.Users.Add(user2);
+
+        // Якщо в AppDbContext налаштовано нормалізацію або COLLATE NOCASE, база кине DbUpdateException
+        await Assert.ThrowsAsync<DbUpdateException>(
+            () => context.SaveChangesAsync(TestContext.Current.CancellationToken));
+    }
 }

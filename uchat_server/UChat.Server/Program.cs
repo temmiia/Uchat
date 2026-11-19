@@ -48,21 +48,21 @@ builder.Services
     {
         options.MapInboundClaims = false;
         options.Events = new JwtBearerEvents
-{
-    OnMessageReceived = context =>
-    {
-        // Read JWT from the query string only for SignalR connections.
-        var accessToken = context.Request.Query["access_token"];
-
-        if (!string.IsNullOrEmpty(accessToken) &&
-            context.HttpContext.Request.Path.StartsWithSegments("/hubs/chat"))
         {
-            context.Token = accessToken;
-        }
+            OnMessageReceived = context =>
+            {
+                // Read JWT from the query string only for SignalR connections.
+                var accessToken = context.Request.Query["access_token"];
 
-        return Task.CompletedTask;
-    }
-};
+                if (!string.IsNullOrEmpty(accessToken) &&
+                    context.HttpContext.Request.Path.StartsWithSegments("/hubs/chat"))
+                {
+                    context.Token = accessToken;
+                }
+
+                return Task.CompletedTask;
+            }
+        };
         options.TokenValidationParameters = new TokenValidationParameters
         {
             NameClaimType = JwtRegisteredClaimNames.Sub,
