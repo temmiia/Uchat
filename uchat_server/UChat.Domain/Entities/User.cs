@@ -1,9 +1,9 @@
 namespace UChat.Domain.Entities;
 
-// Модель пользователя
+// User domain entity
 public class User
 {
-    // Пустой конструктор для EF Core
+    // Parameterless constructor for EF Core
     private User()
     {
     }
@@ -37,16 +37,16 @@ public class User
         CreatedAtUtc = DateTime.UtcNow;
     }
 
-    // 1-й уровень защиты: AccountId задается только при создании и не имеет публичного сеттера
+    // 1st layer of defense: AccountId is set only upon registration (private init) and has no public setter
     public string AccountId { get; private init; } = string.Empty;
 
-    // Публичный никнейм для поиска и входа (@username)
+    // Public unique username handle (@username)
     public string UserName { get; set; } = string.Empty;
 
-    // Отображаемое имя в чате
+    // Human-readable display name in chat
     public string DisplayName { get; set; } = string.Empty;
 
-    // Хеш пароля (в открытом виде не храним)
+    // Secure password hash (never stored in plain text)
     public string PasswordHash { get; set; } = string.Empty;
 
     public string? AvatarUrl { get; set; }
@@ -55,7 +55,7 @@ public class User
     public DateTime CreatedAtUtc { get; private init; } = DateTime.UtcNow;
     public DateTime? UpdatedAtUtc { get; set; }
 
-    // Навигационные свойства
+    // Navigation properties
     public ICollection<ConversationMember> Memberships { get; set; } = new List<ConversationMember>();
     public ICollection<Message> Messages { get; set; } = new List<Message>();
 }

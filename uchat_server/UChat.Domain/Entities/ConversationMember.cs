@@ -2,10 +2,10 @@ using UChat.Domain.Enums;
 
 namespace UChat.Domain.Entities;
 
-// Модель участника беседы (связь многие-ко-многим между User и Conversation)
+// Membership relationship between a User and a Conversation
 public class ConversationMember
 {
-    // Пустой конструктор для EF Core
+    // Parameterless constructor for EF Core
     private ConversationMember()
     {
     }
@@ -31,16 +31,16 @@ public class ConversationMember
 
     public Guid MemberId { get; private init; } = Guid.NewGuid();
 
-    // Внешние ключи
+    // Foreign keys
     public Guid ConversationId { get; set; }
     public string AccountId { get; set; } = string.Empty;
 
-    // Роль: Owner, Admin, Member
+    // Role: Owner, Admin, Member
     public MemberRole Role { get; set; } = MemberRole.Member;
 
     public DateTime JoinedAtUtc { get; private init; } = DateTime.UtcNow;
 
-    // Навигационные свойства
+    // Navigation properties
     public Conversation Conversation { get; set; } = null!;
     public User User { get; set; } = null!;
 }

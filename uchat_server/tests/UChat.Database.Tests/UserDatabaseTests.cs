@@ -8,7 +8,7 @@ public class UserDatabaseTests
     [Fact]
     public async Task Can_Create_And_Persist_User_With_Required_Fields()
     {
-        // Проверяем создание пользователя со всеми обязательными и опциональными полями
+        // Verify user persistence with required and optional profile fields
         var (context, connection) = TestDbContextFactory.CreateInMemoryDbContext();
         await using var _ = connection;
         await using var __ = context;
@@ -25,9 +25,9 @@ public class UserDatabaseTests
         };
 
         context.Users.Add(user);
-        await context.SaveChangesAsync();
+        await context.SaveChangesAsync(TestContext.Current.CancellationToken);
 
-        var retrieved = await context.Users.FirstOrDefaultAsync(u => u.AccountId == "acc_usr_12345");
+        var retrieved = await context.Users.FirstOrDefaultAsync(u => u.AccountId == "acc_usr_12345", cancellationToken: TestContext.Current.CancellationToken);
 
         Assert.NotNull(retrieved);
         Assert.Equal("acc_usr_12345", retrieved.AccountId);
@@ -40,16 +40,16 @@ public class UserDatabaseTests
     [Fact]
     public async Task AccountId_Is_Immutable_And_Throws_On_Modification_Attempt()
     {
-        // Проверяем неизменность AccountId (требование ТЗ)
+        // Verify AccountId immutability invariant
         var (context, connection) = TestDbContextFactory.CreateInMemoryDbContext();
         await using var _ = connection;
         await using var __ = context;
 
         var user = new User("acc_permanent_id_1", "john_doe", "John Doe", "hashed_pwd");
         context.Users.Add(user);
-        await context.SaveChangesAsync();
+        await context.SaveChangesAsync(TestContext.Current.CancellationToken);
 
-        // Попытка изменить AccountId у сохраненного пользователя должна приводить к ошибке
+        // Attempting to modify AccountId on an existing user entity must throw
         var entry = context.Entry(user);
         var exception = Assert.Throws<InvalidOperationException>(() =>
         {
@@ -62,7 +62,7 @@ public class UserDatabaseTests
     [Fact]
     public async Task Duplicate_UserName_Throws_DbUpdateException()
     {
-        // Проверяем уникальность UserName
+        // Verify unique constraint on UserName
         var (context, connection) = TestDbContextFactory.CreateInMemoryDbContext();
         await using var _ = connection;
         await using var __ = context;
@@ -71,31 +71,51 @@ public class UserDatabaseTests
         var user2 = new User("acc_002", "same_username", "Second User", "hash2");
 
         context.Users.Add(user1);
-        await context.SaveChangesAsync();
+        await context.SaveChangesAsync(TestContext.Current.CancellationToken);
 
         context.Users.Add(user2);
 
-        await Assert.ThrowsAsync<DbUpdateException>(() => context.SaveChangesAsync());
+        await Assert.ThrowsAsync<DbUpdateException>(() => context.SaveChangesAsync(TestContext.Current.CancellationToken));
     }
 
     [Fact]
     public async Task DisplayName_Can_Be_Updated_Successfully()
     {
-        // Проверяем, что DisplayName можно обновлять в отличие от AccountId
+        // Unlike AccountId, DisplayName can be updated freely
         var (context, connection) = TestDbContextFactory.CreateInMemoryDbContext();
         await using var _ = connection;
         await using var __ = context;
 
         var user = new User("acc_display_test", "tester", "Old Name", "hash");
         context.Users.Add(user);
-        await context.SaveChangesAsync();
+        await context.SaveChangesAsync(TestContext.Current.CancellationToken);
 
         user.DisplayName = "New Name";
         user.UpdatedAtUtc = DateTime.UtcNow;
-        await context.SaveChangesAsync();
+        await context.SaveChangesAsync(TestContext.Current.CancellationToken);
 
-        var updated = await context.Users.AsNoTracking().FirstOrDefaultAsync(u => u.AccountId == "acc_display_test");
+        var updated = await context.Users.AsNoTracking().FirstOrDefaultAsync(u => u.AccountId == "acc_display_test", cancellationToken: TestContext.Current.CancellationToken);
         Assert.NotNull(updated);
         Assert.Equal("New Name", updated.DisplayName);
+    }
+
+    [Fact]
+    public async Task Duplicate_UserName_With_Different_Case_Throws_DbUpdateException()
+    {
+        var (context, connection) = TestDbContextFactory.CreateInMemoryDbContext();
+        await using var _ = connection;
+        await using var __ = context;
+
+        var user1 = new User("acc_001", "alexandr", "First User", "hash1");
+        var user2 = new User("acc_002", "Alexandr", "Second User", "hash2");
+
+        context.Users.Add(user1);
+        await context.SaveChangesAsync(TestContext.Current.CancellationToken);
+
+        context.Users.Add(user2);
+
+        // Якщо в AppDbContext налаштовано нормалізацію або COLLATE NOCASE, база кине DbUpdateException
+        await Assert.ThrowsAsync<DbUpdateException>(
+            () => context.SaveChangesAsync(TestContext.Current.CancellationToken));
     }
 }

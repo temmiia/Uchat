@@ -1,9 +1,9 @@
 namespace UChat.Domain.Entities;
 
-// Модель сообщения в чате
+// Message entity in a conversation
 public class Message
 {
-    // Пустой конструктор для EF Core
+    // Parameterless constructor for EF Core
     private Message()
     {
     }
@@ -13,7 +13,8 @@ public class Message
         string senderAccountId,
         string content,
         string? clientMessageId = null,
-        Guid? messageId = null)
+        Guid? messageId = null,
+        DateTime? createdAtUtc = null)
     {
         if (conversationId == Guid.Empty)
         {
@@ -35,7 +36,7 @@ public class Message
         SenderAccountId = senderAccountId;
         Content = content;
         ClientMessageId = clientMessageId;
-        CreatedAtUtc = DateTime.UtcNow;
+        CreatedAtUtc = createdAtUtc ?? DateTime.UtcNow;
         IsDeleted = false;
     }
 
@@ -46,19 +47,24 @@ public class Message
 
     public string Content { get; set; } = string.Empty;
 
+    // Time when the message was originally created (by user / offline client)
     public DateTime CreatedAtUtc { get; private init; } = DateTime.UtcNow;
+
+    // Time when the server received the message (distinguishes offline created time from delivery time)
+    public DateTime? ServerReceivedAtUtc { get; set; }
+
     public DateTime? EditedAtUtc { get; set; }
 
-    // Мягкое удаление (флаг + затирание текста)
+    // Soft delete: flag + clearing message text
     public bool IsDeleted { get; set; } = false;
 
-    // Идемпотентность: клиентский ID для защиты от дублирования при сбоях сети
+    // Client-supplied idempotency key to prevent duplication on network retries
     public string? ClientMessageId { get; set; }
 
     public Conversation Conversation { get; set; } = null!;
     public User Sender { get; set; } = null!;
 
-    // Редактирование текста сообщения
+    // Edit message content
     public void EditContent(string newContent)
     {
         if (IsDeleted)
@@ -75,7 +81,7 @@ public class Message
         EditedAtUtc = DateTime.UtcNow;
     }
 
-    // Мягкое удаление: помечаем флаг и затираем текст
+    // Soft delete: set flag and wipe content
     public void MarkAsDeleted()
     {
         IsDeleted = true;

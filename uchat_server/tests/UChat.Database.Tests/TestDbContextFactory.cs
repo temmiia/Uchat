@@ -4,12 +4,12 @@ using UChat.Infrastructure.Data;
 
 namespace UChat.Database.Tests;
 
-// Фабрика для создания тестовой in-memory базы SQLite
+// Factory creating isolated in-memory SQLite database contexts for tests
 public static class TestDbContextFactory
 {
     public static (AppDbContext Context, SqliteConnection Connection) CreateInMemoryDbContext()
     {
-        // Держим соединение открытым, иначе in-memory база удалится
+        // Keep the SQLite in-memory connection open, otherwise the database will be destroyed
         var connection = new SqliteConnection("Data Source=:memory:");
         connection.Open();
 

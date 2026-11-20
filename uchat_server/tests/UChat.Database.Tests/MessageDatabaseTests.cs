@@ -18,9 +18,9 @@ public class MessageDatabaseTests
         context.Users.Add(sender);
         context.Conversations.Add(conversation);
         context.Members.Add(new ConversationMember(conversation.ConversationId, sender.AccountId, MemberRole.Owner));
-        await context.SaveChangesAsync();
+        await context.SaveChangesAsync(TestContext.Current.CancellationToken);
 
-        // 1. Отправка сообщения
+        // 1. Create message
         var message = new Message(
             conversation.ConversationId,
             sender.AccountId,
@@ -28,11 +28,11 @@ public class MessageDatabaseTests
             clientMessageId: "client-req-001"
         );
         context.Messages.Add(message);
-        await context.SaveChangesAsync();
+        await context.SaveChangesAsync(TestContext.Current.CancellationToken);
 
         var retrieved = await context.Messages
             .Include(m => m.Sender)
-            .FirstOrDefaultAsync(m => m.MessageId == message.MessageId);
+            .FirstOrDefaultAsync(m => m.MessageId == message.MessageId, cancellationToken: TestContext.Current.CancellationToken);
 
         Assert.NotNull(retrieved);
         Assert.Equal("Hello world!", retrieved.Content);
@@ -41,21 +41,21 @@ public class MessageDatabaseTests
         Assert.False(retrieved.IsDeleted);
         Assert.Null(retrieved.EditedAtUtc);
 
-        // 2. Редактирование текста сообщения
+        // 2. Edit message
         retrieved.EditContent("Hello world (edited)!");
-        await context.SaveChangesAsync();
+        await context.SaveChangesAsync(TestContext.Current.CancellationToken);
 
-        var edited = await context.Messages.AsNoTracking().FirstOrDefaultAsync(m => m.MessageId == message.MessageId);
+        var edited = await context.Messages.AsNoTracking().FirstOrDefaultAsync(m => m.MessageId == message.MessageId, cancellationToken: TestContext.Current.CancellationToken);
         Assert.NotNull(edited);
         Assert.Equal("Hello world (edited)!", edited.Content);
         Assert.NotNull(edited.EditedAtUtc);
         Assert.False(edited.IsDeleted);
 
-        // 3. Мягкое удаление (помечаем как удаленное и затираем текст)
+        // 3. Soft delete message
         retrieved.MarkAsDeleted();
-        await context.SaveChangesAsync();
+        await context.SaveChangesAsync(TestContext.Current.CancellationToken);
 
-        var deleted = await context.Messages.AsNoTracking().FirstOrDefaultAsync(m => m.MessageId == message.MessageId);
+        var deleted = await context.Messages.AsNoTracking().FirstOrDefaultAsync(m => m.MessageId == message.MessageId, cancellationToken: TestContext.Current.CancellationToken);
         Assert.NotNull(deleted);
         Assert.True(deleted.IsDeleted);
         Assert.Empty(deleted.Content);
@@ -64,7 +64,7 @@ public class MessageDatabaseTests
     [Fact]
     public async Task Messages_Are_Retrieved_In_Chronological_Order()
     {
-        // Проверяем сортировку сообщений по дате создания
+        // Verify chronological ordering of messages in a conversation
         var (context, connection) = TestDbContextFactory.CreateInMemoryDbContext();
         await using var _ = connection;
         await using var __ = context;
@@ -73,19 +73,19 @@ public class MessageDatabaseTests
         var conversation = new Conversation(ConversationType.Direct);
         context.Users.Add(user);
         context.Conversations.Add(conversation);
-        await context.SaveChangesAsync();
+        await context.SaveChangesAsync(TestContext.Current.CancellationToken);
 
         var msg1 = new Message(conversation.ConversationId, user.AccountId, "Msg 1");
         var msg2 = new Message(conversation.ConversationId, user.AccountId, "Msg 2");
         var msg3 = new Message(conversation.ConversationId, user.AccountId, "Msg 3");
 
         context.Messages.AddRange(msg1, msg2, msg3);
-        await context.SaveChangesAsync();
+        await context.SaveChangesAsync(TestContext.Current.CancellationToken);
 
         var history = await context.Messages
             .Where(m => m.ConversationId == conversation.ConversationId)
             .OrderBy(m => m.CreatedAtUtc)
-            .ToListAsync();
+            .ToListAsync(cancellationToken: TestContext.Current.CancellationToken);
 
         Assert.Equal(3, history.Count);
         Assert.Equal("Msg 1", history[0].Content);

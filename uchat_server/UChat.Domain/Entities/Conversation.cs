@@ -2,17 +2,17 @@ using UChat.Domain.Enums;
 
 namespace UChat.Domain.Entities;
 
-// Модель беседы (личный диалог 1-на-1 или групповой чат)
+// Conversation entity (1-on-1 direct dialogue or group chat)
 public class Conversation
 {
-    // Пустой конструктор для EF Core
+    // Parameterless constructor for EF Core
     private Conversation()
     {
     }
 
     public Conversation(ConversationType type, string? title = null, Guid? conversationId = null)
     {
-        // Для групповых чатов название обязательно
+        // Group chats require a non-empty title
         if (type == ConversationType.Group && string.IsNullOrWhiteSpace(title))
         {
             throw new ArgumentException("Group conversation must have a non-empty title.", nameof(title));
@@ -26,7 +26,7 @@ public class Conversation
 
     public Guid ConversationId { get; private init; } = Guid.NewGuid();
 
-    // Direct или Group
+    // Direct or Group
     public ConversationType Type { get; set; } = ConversationType.Direct;
 
     public string? Title { get; set; }

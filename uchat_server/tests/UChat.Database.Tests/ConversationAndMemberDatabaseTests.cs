@@ -9,7 +9,7 @@ public class ConversationAndMemberDatabaseTests
     [Fact]
     public async Task Can_Create_Conversation_And_Add_Members_With_Roles()
     {
-        // Создаем групповой чат и добавляем участников с ролями Owner и Member
+        // Create conversation and add members with Owner and Member roles
         var (context, connection) = TestDbContextFactory.CreateInMemoryDbContext();
         await using var _ = connection;
         await using var __ = context;
@@ -25,12 +25,12 @@ public class ConversationAndMemberDatabaseTests
         var regularMembership = new ConversationMember(conversation.ConversationId, member.AccountId, MemberRole.Member);
         context.Members.AddRange(ownerMembership, regularMembership);
 
-        await context.SaveChangesAsync();
+        await context.SaveChangesAsync(TestContext.Current.CancellationToken);
 
         var retrievedConversation = await context.Conversations
             .Include(c => c.Members)
             .ThenInclude(m => m.User)
-            .FirstOrDefaultAsync(c => c.ConversationId == conversation.ConversationId);
+            .FirstOrDefaultAsync(c => c.ConversationId == conversation.ConversationId, cancellationToken: TestContext.Current.CancellationToken);
 
         Assert.NotNull(retrievedConversation);
         Assert.Equal("Design Team Chat", retrievedConversation.Title);
@@ -43,7 +43,7 @@ public class ConversationAndMemberDatabaseTests
     [Fact]
     public async Task Duplicate_User_In_Same_Conversation_Throws_DbUpdateException()
     {
-        // Проверяем, что один и тот же юзер не может быть добавлен в одну беседу дважды
+        // A user cannot be added twice to the same conversation
         var (context, connection) = TestDbContextFactory.CreateInMemoryDbContext();
         await using var _ = connection;
         await using var __ = context;
@@ -57,10 +57,10 @@ public class ConversationAndMemberDatabaseTests
         var member2 = new ConversationMember(conversation.ConversationId, user.AccountId, MemberRole.Member);
 
         context.Members.Add(member1);
-        await context.SaveChangesAsync();
+        await context.SaveChangesAsync(TestContext.Current.CancellationToken);
 
         context.Members.Add(member2);
 
-        await Assert.ThrowsAsync<DbUpdateException>(() => context.SaveChangesAsync());
+        await Assert.ThrowsAsync<DbUpdateException>(() => context.SaveChangesAsync(TestContext.Current.CancellationToken));
     }
 }
