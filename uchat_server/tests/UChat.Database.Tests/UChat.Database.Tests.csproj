@@ -21,6 +21,7 @@
   <ItemGroup>
     <ProjectReference Include="..\..\UChat.Domain\UChat.Domain.csproj" />
     <ProjectReference Include="..\..\UChat.Application\UChat.Application.csproj" />
+    <ProjectReference Include="..\..\UChat.Server\UChat.Server.csproj" />
     <ProjectReference Include="..\..\UChat.Server.Infrastructure\UChat.Server.Infrastructure.csproj" />
   </ItemGroup>
 
