@@ -12,8 +12,17 @@
         </Border>
         <StackPanel Grid.Row="1" Margin="24" Spacing="12" VerticalAlignment="Center">
             <TextBlock Text="Log in to UChat" FontSize="24" />
-            <TextBox PlaceholderText="Username" />
-            <TextBox PlaceholderText="Password" PasswordChar="●" />
+            <TextBox x:Name="UsernameBox" PlaceholderText="Username" />
+<TextBox x:Name="PasswordBox" PlaceholderText="Password" PasswordChar="●" />
+
+<Button x:Name="LoginButton"
+        Content="Log in"
+        Click="OnLoginClick" />
+
+<TextBlock x:Name="ErrorText"
+           Foreground="Red"
+           TextWrapping="Wrap"
+           IsVisible="False" />
             <Button Content="Log in" Click="OnLoginClick" />
         </StackPanel>
     </Grid>

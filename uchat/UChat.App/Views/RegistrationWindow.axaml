@@ -12,9 +12,19 @@
         </Border>
         <StackPanel Grid.Row="1" Margin="32" Spacing="12" VerticalAlignment="Center">
             <TextBlock Text="Create account" FontSize="24" HorizontalAlignment="Center" />
-            <TextBox PlaceholderText="Username" />
-            <TextBox PlaceholderText="Display name" />
-            <TextBox PlaceholderText="Password" PasswordChar="●" />
+            <TextBox x:Name="UsernameBox" PlaceholderText="Username" />
+<TextBox x:Name="DisplayNameBox" PlaceholderText="Display name" />
+<TextBox x:Name="PasswordBox" PlaceholderText="Password" PasswordChar="●" />
+
+<Button x:Name="SignUpButton"
+        Content="Sign up"
+        HorizontalAlignment="Stretch"
+        Click="OnSignUpClick" />
+
+<TextBlock x:Name="ErrorText"
+           Foreground="Red"
+           TextWrapping="Wrap"
+           IsVisible="False" />
             <Button Content="Sign up" HorizontalAlignment="Stretch" Click="OnSignUpClick" />
         </StackPanel>
     </Grid>
