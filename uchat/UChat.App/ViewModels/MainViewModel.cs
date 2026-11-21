@@ -13,14 +13,19 @@ namespace UChat.App.ViewModels;
 
 public partial class MainViewModel : ObservableObject, IAsyncDisposable
 {
+    private const int PageSize = 50;
+
     private readonly ConversationsApiClient _conversationsApi = new();
     private readonly MessagesApiClient _messagesApi = new();
     private readonly ChatSignalRClient _signalR = new();
+
+    private int _conversationVersion;
 
     public ObservableCollection<ChatConversation> Conversations { get; } = new();
     public ObservableCollection<ChatMessage> Messages { get; } = new();
 
     [ObservableProperty]
+    [NotifyCanExecuteChangedFor(nameof(LoadOlderMessagesCommand))]
     private ChatConversation? selectedConversation;
 
     [ObservableProperty]
@@ -31,6 +36,14 @@ public partial class MainViewModel : ObservableObject, IAsyncDisposable
 
     [ObservableProperty]
     private string status = "Connecting...";
+
+    [ObservableProperty]
+    [NotifyCanExecuteChangedFor(nameof(LoadOlderMessagesCommand))]
+    private bool isLoadingHistory;
+
+    [ObservableProperty]
+    [NotifyCanExecuteChangedFor(nameof(LoadOlderMessagesCommand))]
+    private bool hasMoreMessages;
 
     public MainViewModel()
     {
@@ -58,7 +71,8 @@ public partial class MainViewModel : ObservableObject, IAsyncDisposable
     {
         try
         {
-            var conversations = await _conversationsApi.GetConversationsAsync();
+            var conversations =
+                await _conversationsApi.GetConversationsAsync();
 
             Conversations.Clear();
 
@@ -81,7 +95,8 @@ public partial class MainViewModel : ObservableObject, IAsyncDisposable
 
         try
         {
-            var conversation = await _conversationsApi.CreateDirectAsync(username);
+            var conversation =
+                await _conversationsApi.CreateDirectAsync(username);
 
             await RefreshConversationsAsync();
 
@@ -98,37 +113,123 @@ public partial class MainViewModel : ObservableObject, IAsyncDisposable
 
     partial void OnSelectedConversationChanged(ChatConversation? value)
     {
-        _ = SelectConversationAsync(value);
+        var version = ++_conversationVersion;
+
+        HasMoreMessages = false;
+        IsLoadingHistory = false;
+        Messages.Clear();
+
+        _ = SelectConversationAsync(value, version);
     }
 
-    private async Task SelectConversationAsync(ChatConversation? conversation)
+    private bool IsCurrentConversation(Guid conversationId, int version)
     {
+        return _conversationVersion == version
+            && SelectedConversation?.ConversationId == conversationId;
+    }
+
+    private async Task SelectConversationAsync(
+        ChatConversation? conversation,
+        int version)
+    {
+        if (conversation is null)
+            return;
+
         try
         {
-            Messages.Clear();
-
-            if (conversation is null)
-                return;
-
             if (!_signalR.IsConnected)
                 await _signalR.ConnectAsync();
 
+            if (!IsCurrentConversation(conversation.ConversationId, version))
+                return;
+
             await _signalR.JoinConversationAsync(conversation.ConversationId);
 
-            var history = await _messagesApi.GetMessagesAsync(
-                conversation.ConversationId);
+            if (!IsCurrentConversation(conversation.ConversationId, version))
+                return;
 
-            if (SelectedConversation?.ConversationId != conversation.ConversationId)
+            var history = await _messagesApi.GetMessagesAsync(
+                conversation.ConversationId,
+                limit: PageSize);
+
+            if (!IsCurrentConversation(conversation.ConversationId, version))
                 return;
 
             foreach (var message in history.OrderBy(m => m.CreatedAtUtc))
                 AddMessage(message);
 
+            HasMoreMessages = history.Count == PageSize;
+
             Status = $"Chat: {conversation.DisplayName}";
         }
         catch (Exception ex)
         {
-            Status = $"Chat error: {ex.Message}";
+            if (IsCurrentConversation(conversation.ConversationId, version))
+                Status = $"Chat error: {ex.Message}";
+        }
+    }
+
+    private bool CanLoadOlderMessages()
+    {
+        return SelectedConversation is not null
+            && HasMoreMessages
+            && !IsLoadingHistory
+            && Messages.Count > 0;
+    }
+
+    [RelayCommand(CanExecute = nameof(CanLoadOlderMessages))]
+    private async Task LoadOlderMessagesAsync()
+    {
+        var conversation = SelectedConversation;
+
+        if (conversation is null || !CanLoadOlderMessages())
+            return;
+
+        var version = _conversationVersion;
+
+        var oldestMessage = Messages
+            .OrderBy(m => m.CreatedAtUtc)
+            .First();
+
+        IsLoadingHistory = true;
+
+        try
+        {
+            var olderMessages = await _messagesApi.GetMessagesAsync(
+                conversation.ConversationId,
+                limit: PageSize,
+                beforeUtc: oldestMessage.CreatedAtUtc);
+
+            if (!IsCurrentConversation(conversation.ConversationId, version))
+                return;
+
+            var existingIds = Messages
+                .Select(m => m.MessageId)
+                .ToHashSet();
+
+            // Insert at index 0 in reverse chronological order.
+            // The final collection remains oldest -> newest.
+            foreach (var message in olderMessages
+                .OrderByDescending(m => m.CreatedAtUtc))
+            {
+                if (existingIds.Add(message.MessageId))
+                    Messages.Insert(0, message);
+            }
+
+            HasMoreMessages = olderMessages.Count == PageSize;
+
+            Status = $"Loaded {olderMessages.Count} older messages";
+        }
+        catch (Exception ex)
+        {
+            if (IsCurrentConversation(conversation.ConversationId, version))
+                Status = $"History loading failed: {ex.Message}";
+        }
+        finally
+        {
+            // Do not overwrite the loading state of another conversation.
+            if (IsCurrentConversation(conversation.ConversationId, version))
+                IsLoadingHistory = false;
         }
     }
 
@@ -143,7 +244,10 @@ public partial class MainViewModel : ObservableObject, IAsyncDisposable
 
         try
         {
-            await _signalR.SendMessageAsync(conversation.ConversationId, content);
+            await _signalR.SendMessageAsync(
+                conversation.ConversationId,
+                content);
+
             MessageText = "";
         }
         catch (Exception ex)
@@ -167,6 +271,8 @@ public partial class MainViewModel : ObservableObject, IAsyncDisposable
             return;
 
         Messages.Add(message);
+
+        LoadOlderMessagesCommand.NotifyCanExecuteChanged();
     }
 
     private void OnReconnected()
@@ -184,14 +290,20 @@ public partial class MainViewModel : ObservableObject, IAsyncDisposable
         if (conversation is null)
             return;
 
+        var version = _conversationVersion;
+
         try
         {
             await _signalR.JoinConversationAsync(conversation.ConversationId);
 
-            var history = await _messagesApi.GetMessagesAsync(
-                conversation.ConversationId);
+            if (!IsCurrentConversation(conversation.ConversationId, version))
+                return;
 
-            if (SelectedConversation?.ConversationId != conversation.ConversationId)
+            var history = await _messagesApi.GetMessagesAsync(
+                conversation.ConversationId,
+                limit: PageSize);
+
+            if (!IsCurrentConversation(conversation.ConversationId, version))
                 return;
 
             foreach (var message in history.OrderBy(m => m.CreatedAtUtc))
@@ -201,7 +313,8 @@ public partial class MainViewModel : ObservableObject, IAsyncDisposable
         }
         catch (Exception ex)
         {
-            Status = $"Reconnect error: {ex.Message}";
+            if (IsCurrentConversation(conversation.ConversationId, version))
+                Status = $"Reconnect error: {ex.Message}";
         }
     }
 
@@ -209,6 +322,7 @@ public partial class MainViewModel : ObservableObject, IAsyncDisposable
     {
         _signalR.MessageReceived -= OnMessageReceived;
         _signalR.Reconnected -= OnReconnected;
+
         await _signalR.DisposeAsync();
     }
 }
