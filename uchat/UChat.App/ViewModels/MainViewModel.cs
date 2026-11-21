@@ -8,7 +8,7 @@ using UChat.App.Models;
 
 namespace UChat.App.ViewModels;
 
-public partial class MainViewModel : ViewModelBase
+public partial class MainViewModel : ObservableObject, IAsyncDisposable
 {
     public ObservableCollection<ChatPreview> VisibleChats { get; } = [];
 
