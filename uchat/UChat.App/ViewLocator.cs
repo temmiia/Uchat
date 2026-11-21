@@ -7,7 +7,7 @@ using UChat.App.ViewModels;
 namespace UChat.App;
 
 /// <summary>
-/// Given a view model, returns the corresponding view if possible.
+/// За моделлю подання повертає відповідне подання, якщо воно доступне.
 /// </summary>
 [RequiresUnreferencedCode(
     "Default implementation of ViewLocator involves reflection which may be trimmed away.",

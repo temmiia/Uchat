@@ -1,16 +1,11 @@
-
-using System;
+using Avalonia.Layout;
 
 namespace UChat.App.Models;
 
-public sealed class ChatMessage
+public sealed class ChatMessage(string text, string time, bool isMine)
 {
-    public Guid MessageId { get; set; }
-    public Guid ConversationId { get; set; }
-    public string SenderAccountId { get; set; } = "";
-    public string Content { get; set; } = "";
-    public DateTime CreatedAtUtc { get; set; }
-    public DateTime? ServerReceivedAtUtc { get; set; }
-    public DateTime? EditedAtUtc { get; set; }
-    public string? ClientMessageId { get; set; }
+    public string Text { get; } = text;
+    public string Time { get; } = time;
+    public HorizontalAlignment Alignment { get; } =
+        isMine ? HorizontalAlignment.Right : HorizontalAlignment.Left;
 }
