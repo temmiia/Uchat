@@ -93,10 +93,17 @@
                     BorderThickness="0,0,1,0">
                 <Grid RowDefinitions="Auto,Auto,*">
                     <!-- Заголовок і поле пошуку чатів. Значення пошуку оновлює список одразу. -->
-                    <TextBlock Grid.Row="0"
+                    <!-- Назва, яку мускот "краде" (див. MainWindow.axaml.cs) -->
+                    <TextBlock x:Name="TitleText"
+                               Grid.Row="0"
                                Text="Messages"
-                               Margin="18,20,18,14"
-                               FontSize="22"
+                               Margin="18,33,18,14"
+                               HorizontalAlignment="Left"
+                               VerticalAlignment="Top"
+                               ZIndex="5"
+                               IsHitTestVisible="False"
+                               RenderTransformOrigin="50%,50%"
+                               FontSize="25"
                                FontWeight="SemiBold" />
 
                     <Grid Grid.Row="0"
@@ -105,10 +112,21 @@
                           Width="100"
                           Height="100"
                           HorizontalAlignment="Left"
-                          VerticalAlignment="Center">
+                          VerticalAlignment="Center"
+                          RenderTransformOrigin="50%,100%"
+                          PointerPressed="OnMascotPointerPressed">
                         <Image Source="avares://UChat.App/Assets/mascot.png"
                                  Stretch="Uniform"
                                  RenderOptions.BitmapInterpolationMode="HighQuality" />
+                        <Image x:Name="WitchHat"
+                                 Width="100"
+                                 Height="85"
+                                 Margin="6,-34,0,0"
+                                 HorizontalAlignment="Left"
+                                 VerticalAlignment="Top"
+                                 Source="avares://UChat.App/Assets/witch_hat.png"
+                                    Stretch="Uniform"
+                                    RenderOptions.BitmapInterpolationMode="HighQuality" />
                           <Image x:Name="LeftPupil"
                                  Width="12.8"
                                  Height="12.04"
@@ -126,6 +144,26 @@
                                  VerticalAlignment="Top"
                                  Source="avares://UChat.App/Assets/eye-pupil-right.png"
                                  Stretch="Fill"
+                                 RenderOptions.BitmapInterpolationMode="HighQuality" />
+                        <Image x:Name="LeftLeg"
+                                 Width="20"
+                                 Height="18"
+                                 Margin="19,67,0,0"
+                                 HorizontalAlignment="Left"
+                                 VerticalAlignment="Top"
+                                 Source="avares://UChat.App/Assets/leg.png"
+                                 Stretch="Uniform"
+                                 RenderTransformOrigin="50%,100%"
+                                 RenderOptions.BitmapInterpolationMode="HighQuality" />
+                        <Image x:Name="RightLeg"
+                                 Width="20"
+                                 Height="18"
+                                 Margin="53,67,0,0"
+                                 HorizontalAlignment="Left"
+                                 VerticalAlignment="Top"
+                                 Source="avares://UChat.App/Assets/leg.png"
+                                 Stretch="Uniform"
+                                 RenderTransformOrigin="50%,100%"
                                  RenderOptions.BitmapInterpolationMode="HighQuality" />
                     </Grid>
 
