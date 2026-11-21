@@ -39,7 +39,7 @@ public partial class MainViewModel : ViewModelBase
     public partial string DraftText { get; set; } = string.Empty;
 
     [ObservableProperty]
-    public partial string ConnectionStatusText { get; set; } = "Offline";
+    public partial string ConnectionStatusText { get; set; } = "Disconnected";
 
     [ObservableProperty]
     public partial IBrush ConnectionStatusBrush { get; set; } = Brushes.Gray;
@@ -73,12 +73,12 @@ public partial class MainViewModel : ViewModelBase
     {
         if (isReconnecting)
         {
-            ConnectionStatusText = "Reconnecting...";
+            ConnectionStatusText = "Reconnecting";
             ConnectionStatusBrush = new SolidColorBrush(Color.Parse("#FBBF24"));
             return;
         }
 
-        ConnectionStatusText = isConnected ? "Connected" : "Offline";
+        ConnectionStatusText = isConnected ? "Connected" : "Disconnected";
         ConnectionStatusBrush = isConnected
             ? new SolidColorBrush(Color.Parse("#34D399"))
             : Brushes.Gray;
