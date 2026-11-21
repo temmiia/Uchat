@@ -1,6 +1,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
@@ -16,16 +17,31 @@ public sealed class MessagesApiClient
         BaseAddress = new Uri("http://localhost:5049/")
     };
 
-    public async Task<List<ChatMessage>> GetMessagesAsync(Guid conversationId)
+    public async Task<List<ChatMessage>> GetMessagesAsync(
+        Guid conversationId,
+        int limit = 50,
+        DateTime? beforeUtc = null)
     {
-        using var request = new HttpRequestMessage(
-            HttpMethod.Get,
-            $"api/conversations/{conversationId:D}/messages?limit=50");
+        var url = $"api/conversations/{conversationId:D}/messages?limit={limit}";
+
+        if (beforeUtc.HasValue)
+        {
+            var before = beforeUtc.Value
+                .ToUniversalTime()
+                .ToString("O", CultureInfo.InvariantCulture);
+
+            url += $"&before={Uri.EscapeDataString(before)}";
+        }
+
+        using var request = new HttpRequestMessage(HttpMethod.Get, url);
 
         request.Headers.Authorization =
-            new AuthenticationHeaderValue("Bearer", AuthSession.AccessToken);
+            new AuthenticationHeaderValue(
+                "Bearer",
+                AuthSession.AccessToken);
 
         using var response = await Http.SendAsync(request);
+
         response.EnsureSuccessStatusCode();
 
         return await response.Content
