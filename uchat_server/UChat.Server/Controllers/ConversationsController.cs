@@ -97,6 +97,8 @@ public sealed class ConversationsController : ControllerBase
         if (target.AccountId == accountId)
             return BadRequest(new { error = "Cannot chat with yourself." });
 
+        await using var transaction = await _db.Database.BeginTransactionAsync(cancellationToken);
+
         var existing = await _db.Conversations
             .AsNoTracking()
             .Where(c => c.Type == ConversationType.Direct)
@@ -126,6 +128,7 @@ public sealed class ConversationsController : ControllerBase
             new ConversationMember(conversation.ConversationId, target.AccountId));
 
         await _db.SaveChangesAsync(cancellationToken);
+        await transaction.CommitAsync(cancellationToken);
 
         return StatusCode(
             StatusCodes.Status201Created,
