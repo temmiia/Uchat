@@ -1,6 +1,7 @@
 using System;
 using System.Collections.ObjectModel;
 using System.Linq;
+using Avalonia.Media;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using UChat.App.Models;
@@ -37,6 +38,18 @@ public partial class MainViewModel : ViewModelBase
     [ObservableProperty]
     public partial string DraftText { get; set; } = string.Empty;
 
+    [ObservableProperty]
+    public partial string ConnectionStatusText { get; set; } = "Offline";
+
+    [ObservableProperty]
+    public partial IBrush ConnectionStatusBrush { get; set; } = Brushes.Gray;
+
+    [ObservableProperty]
+    public partial bool IsCatchUpNotificationVisible { get; set; }
+
+    [ObservableProperty]
+    public partial string CatchUpNotificationText { get; set; } = string.Empty;
+
     partial void OnSearchTextChanged(string value)
     {
         var selectedChat = SelectedChat;
@@ -54,6 +67,40 @@ public partial class MainViewModel : ViewModelBase
         {
             SelectedChat = matches.FirstOrDefault();
         }
+    }
+
+    public void SetConnectionState(bool isConnected, bool isReconnecting = false)
+    {
+        if (isReconnecting)
+        {
+            ConnectionStatusText = "Reconnecting...";
+            ConnectionStatusBrush = new SolidColorBrush(Color.Parse("#FBBF24"));
+            return;
+        }
+
+        ConnectionStatusText = isConnected ? "Connected" : "Offline";
+        ConnectionStatusBrush = isConnected
+            ? new SolidColorBrush(Color.Parse("#34D399"))
+            : Brushes.Gray;
+    }
+
+    public void NotifyMessagesCaughtUp(int count)
+    {
+        if (count <= 0)
+        {
+            return;
+        }
+
+        CatchUpNotificationText = count == 1
+            ? "1 new message loaded after reconnect"
+            : $"{count} new messages loaded after reconnect";
+        IsCatchUpNotificationVisible = true;
+    }
+
+    [RelayCommand]
+    private void DismissCatchUpNotification()
+    {
+        IsCatchUpNotificationVisible = false;
     }
 
     private readonly ChatPreview[] allChats =

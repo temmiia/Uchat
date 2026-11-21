@@ -7,6 +7,7 @@
         mc:Ignorable="d" d:DesignWidth="1000" d:DesignHeight="650"
         x:Class="UChat.App.Views.MainWindow"
         x:DataType="vm:MainViewModel"
+        PointerMoved="OnPointerMoved"
         Title="UChat"
         MinWidth="760" MinHeight="500"
         WindowDecorations="None"
@@ -39,12 +40,19 @@
 
     <Grid RowDefinitions="32, *">
         <!-- Власна верхня панель вікна -->
-        <Grid Grid.Row="0" Background="{DynamicResource AppBgBrush}" PointerPressed="OnTitleBarPointerPressed">
-            <TextBlock Text="UChat"
-                       Margin="14,0,0,0"
-                       VerticalAlignment="Center"
-                       FontSize="12"
-                       Opacity="0.6" />
+        <Grid Grid.Row="0"
+              Background="{DynamicResource AppBgBrush}"
+              PointerPressed="OnTitleBarPointerPressed">
+            <StackPanel Orientation="Horizontal"
+                        Spacing="6"
+                        Margin="6,0,0,0"
+                        VerticalAlignment="Center">
+
+                <TextBlock Text="UChat"
+                           VerticalAlignment="Center"
+                           FontSize="12"
+                           Opacity="0.6" />
+            </StackPanel>
 
             <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
                 <!-- Згорнути  -->
@@ -90,6 +98,33 @@
                                Margin="18,20,18,14"
                                FontSize="22"
                                FontWeight="SemiBold" />
+
+                    <Grid Grid.Row="0"
+                          x:Name="MascotContainer"
+                          Margin="180,0,50,0"
+                          Width="100"
+                          Height="100"
+                          HorizontalAlignment="Left"
+                          VerticalAlignment="Center">
+                        <Image Source="avares://UChat.App/Assets/mascot.png"
+                               Stretch="Uniform" />
+                        <Image x:Name="LeftPupil"
+                               Width="12.8"
+                               Height="12.04"
+                               Margin="26.75,35.37,0,0"
+                               HorizontalAlignment="Left"
+                               VerticalAlignment="Top"
+                               Source="avares://UChat.App/Assets/eye-pupil-left.png"
+                               Stretch="Fill" />
+                        <Image x:Name="RightPupil"
+                               Width="12.8"
+                               Height="12.04"
+                               Margin="54.38,35.22,0,0"
+                               HorizontalAlignment="Left"
+                               VerticalAlignment="Top"
+                               Source="avares://UChat.App/Assets/eye-pupil-right.png"
+                               Stretch="Fill" />
+                    </Grid>
 
                     <TextBox Grid.Row="1"
                              Margin="12,0,12,10"
@@ -143,21 +178,53 @@
             </Border>
 
             <!-- Область відкритої переписки: заголовок, історія повідомлень і поле введення. -->
-            <Grid Grid.Column="1" RowDefinitions="68,*,Auto">
+            <Grid Grid.Column="1" RowDefinitions="68,Auto,*,Auto">
                 <!-- Ім'я співрозмовника або назва групи вибраного чату. -->
                 <Border Grid.Row="0"
                         Background="{DynamicResource PanelBgBrush}"
                         BorderBrush="{DynamicResource MagicBorderBrush}"
                         BorderThickness="0,0,0,1"
                         Padding="20,0">
-                    <TextBlock Text="{Binding SelectedChat.Name}"
-                               VerticalAlignment="Center"
-                               FontSize="17"
-                               FontWeight="SemiBold" />
+                    <Grid ColumnDefinitions="*,Auto">
+                        <TextBlock Text="{Binding SelectedChat.Name}"
+                                   VerticalAlignment="Center"
+                                   FontSize="17"
+                                   FontWeight="SemiBold" />
+                        <StackPanel Grid.Column="1"
+                                    Orientation="Horizontal"
+                                    Spacing="8"
+                                    VerticalAlignment="Center">
+                            <Border Width="8"
+                                    Height="8"
+                                    CornerRadius="4"
+                                    Background="{Binding ConnectionStatusBrush}" />
+                            <TextBlock Text="{Binding ConnectionStatusText}"
+                                       FontSize="12"
+                                       Opacity="0.8"
+                                       VerticalAlignment="Center" />
+                        </StackPanel>
+                    </Grid>
+                </Border>
+
+                <Border Grid.Row="1"
+                        IsVisible="{Binding IsCatchUpNotificationVisible}"
+                        Margin="12,10,12,0"
+                        Padding="12,8"
+                        CornerRadius="8"
+                        Background="#2634D399">
+                    <Grid ColumnDefinitions="*,Auto">
+                        <TextBlock Text="{Binding CatchUpNotificationText}"
+                                   VerticalAlignment="Center" />
+                        <Button Grid.Column="1"
+                                Content="×"
+                                Padding="8,0"
+                                Background="Transparent"
+                                Command="{Binding DismissCatchUpNotificationCommand}" />
+                    </Grid>
                 </Border>
 
                 <!-- Історія повідомлень прокручується; вирівнювання кожного повідомлення задається моделлю. -->
-                <ScrollViewer Grid.Row="1" Padding="18">
+                <ScrollViewer Grid.Row="2" Padding="18">
                     <ItemsControl ItemsSource="{Binding SelectedChat.Messages}">
                         <!-- Бульбашка повідомлення з текстом і часом відправлення. -->
                         <ItemsControl.ItemTemplate>
@@ -182,7 +249,7 @@
                 </ScrollViewer>
 
                 <!-- Поле для нового повідомлення та кнопка відправлення. Enter виконує ту саму команду. -->
-                <Border Grid.Row="2"
+                <Border Grid.Row="3"
                         Background="{DynamicResource PanelBgBrush}"
                         BorderBrush="{DynamicResource MagicBorderBrush}"
                         BorderThickness="0,1,0,0"
@@ -207,5 +274,6 @@
                 </Border>
             </Grid>
         </Grid>
+
     </Grid>
 </Window>
