@@ -92,7 +92,7 @@
                     Background="{DynamicResource PanelBgBrush}"
                     BorderBrush="{DynamicResource MagicBorderBrush}"
                     BorderThickness="0,0,1,0">
-                <Grid RowDefinitions="Auto,Auto,*">
+                <Grid RowDefinitions="Auto,*">
                     <!-- Заголовок і поле пошуку чатів. Значення пошуку оновлює список одразу. -->
                     <!-- Назва, яку мускот "краде" (див. MainWindow.axaml.cs) -->
                     <TextBlock x:Name="TitleText"
@@ -168,20 +168,14 @@
                                  RenderOptions.BitmapInterpolationMode="HighQuality" />
                     </Grid>
 
-                    <TextBox Grid.Row="1"
-                             Margin="12,0,12,10"
-                             Padding="10,8"
-                             PlaceholderText="Search chats"
-                             Text="{Binding SearchText, UpdateSourceTrigger=PropertyChanged}" />
-
                     <!-- Список відфільтрованих чатів; вибраний елемент визначає відкриту переписку. -->
-                    <ListBox Grid.Row="2"
+                    <ListBox Grid.Row="1"
                              Background="Transparent"
-                             ItemsSource="{Binding VisibleChats}"
-                             SelectedItem="{Binding SelectedChat, Mode=TwoWay}">
+                             ItemsSource="{Binding Conversations}"
+                             SelectedItem="{Binding SelectedConversation, Mode=TwoWay}">
                         <!-- Шаблон одного чату: ініціали, ім'я, останнє повідомлення та час. -->
                         <ListBox.ItemTemplate>
-                            <DataTemplate x:DataType="models:ChatPreview">
+                            <DataTemplate x:DataType="models:ChatConversation">
                                 <Border Padding="10" CornerRadius="10">
                                     <Grid ColumnDefinitions="42,*" RowDefinitions="Auto,Auto">
                                         <Border Grid.RowSpan="2"
@@ -189,28 +183,29 @@
                                                 CornerRadius="19"
                                                 Background="{DynamicResource MagicPurpleBrush}"
                                                 VerticalAlignment="Center">
-                                            <TextBlock Text="{Binding AvatarInitials}"
+                                            <TextBlock Text="•"
                                                        HorizontalAlignment="Center"
                                                        VerticalAlignment="Center"
                                                        FontWeight="SemiBold"
                                                        Foreground="White" />
                                         </Border>
                                         <TextBlock Grid.Column="1"
-                                                   Text="{Binding Name}"
+                                                   Text="{Binding DisplayName}"
                                                    Margin="5,0,0,0"
                                                    FontWeight="SemiBold"
                                                    TextTrimming="CharacterEllipsis" />
                                         <TextBlock Grid.Row="1" Grid.Column="1"
-                                                   Text="{Binding LastMessage}"
+                                                   Text="Open conversation"
                                                    Margin="5,3,0,0"
                                                    FontSize="12"
                                                    Opacity="0.7"
                                                    TextTrimming="CharacterEllipsis" />
-                                        <TextBlock Grid.Row="0" Grid.Column="1"
-                                                   Text="{Binding Time}"
-                                                   HorizontalAlignment="Right"
-                                                   FontSize="11"
-                                                   Opacity="0.6" />
+                                        <TextBlock Grid.Row="0"
+           Grid.Column="1"
+           Text=""
+           HorizontalAlignment="Right"
+           FontSize="11"
+           Opacity="0.6" />
                                     </Grid>
                                 </Border>
                             </DataTemplate>
@@ -228,7 +223,7 @@
                         BorderThickness="0,0,0,1"
                         Padding="20,0">
                     <Grid ColumnDefinitions="*,Auto">
-                        <TextBlock Text="{Binding SelectedChat.Name}"
+                        <TextBlock Text="{Binding SelectedConversation.DisplayName}"
                                    VerticalAlignment="Center"
                                    FontSize="17"
                                    FontWeight="SemiBold" />
@@ -239,8 +234,8 @@
                             <Border Width="8"
                                     Height="8"
                                     CornerRadius="4"
-                                    Background="{Binding ConnectionStatusBrush}" />
-                            <TextBlock Text="{Binding ConnectionStatusText}"
+                                    Background="{DynamicResource MagicPurpleBrush}" />
+                            <TextBlock Text="{Binding Status}"
                                        FontSize="12"
                                        Opacity="0.8"
                                        VerticalAlignment="Center" />
@@ -248,26 +243,19 @@
                     </Grid>
                 </Border>
 
-                <Border Grid.Row="1"
-                        IsVisible="{Binding IsCatchUpNotificationVisible}"
-                        Margin="12,10,12,0"
-                        Padding="12,8"
-                        CornerRadius="8"
-                        Background="#2634D399">
-                    <Grid ColumnDefinitions="*,Auto">
-                        <TextBlock Text="{Binding CatchUpNotificationText}"
-                                   VerticalAlignment="Center" />
-                        <Button Grid.Column="1"
-                                Content="×"
-                                Padding="8,0"
-                                Background="Transparent"
-                                Command="{Binding DismissCatchUpNotificationCommand}" />
-                    </Grid>
-                </Border>
+                <StackPanel Grid.Row="1" Orientation="Horizontal" Spacing="8" Margin="12,8">
+                    <TextBox Width="190" PlaceholderText="Username for new chat" Text="{Binding NewChatUsername}" />
+                    <Button Content="New Chat" Command="{Binding CreateChatCommand}" />
+                    <Button Content="Refresh" Command="{Binding RefreshConversationsCommand}" />
+                </StackPanel>
 
                 <!-- Історія повідомлень прокручується; вирівнювання кожного повідомлення задається моделлю. -->
                 <ScrollViewer Grid.Row="2" Padding="18">
-                    <ItemsControl ItemsSource="{Binding SelectedChat.Messages}">
+                    <StackPanel Spacing="8">
+                        <Button Content="Load older messages"
+                                Command="{Binding LoadOlderMessagesCommand}"
+                                HorizontalAlignment="Center" />
+                    <ItemsControl ItemsSource="{Binding Messages}">
                         <!-- Бульбашка повідомлення з текстом і часом відправлення. -->
                         <ItemsControl.ItemTemplate>
                             <DataTemplate x:DataType="models:ChatMessage">
@@ -276,10 +264,10 @@
                                         Padding="12,9"
                                         CornerRadius="12"
                                         Background="{DynamicResource PanelBgBrush}"
-                                        HorizontalAlignment="{Binding Alignment}">
+                                        HorizontalAlignment="Left">
                                     <StackPanel Spacing="4">
-                                        <TextBlock Text="{Binding Text}" TextWrapping="Wrap" />
-                                        <TextBlock Text="{Binding Time}"
+                                        <TextBlock Text="{Binding Content}" TextWrapping="Wrap" />
+                                        <TextBlock Text="{Binding CreatedAtUtc}"
                                                    FontSize="10"
                                                    Opacity="0.65"
                                                    HorizontalAlignment="Right" />
@@ -288,6 +276,7 @@
                             </DataTemplate>
                         </ItemsControl.ItemTemplate>
                     </ItemsControl>
+                    </StackPanel>
                 </ScrollViewer>
 
                 <!-- Поле для нового повідомлення та кнопка відправлення. Enter виконує ту саму команду. -->
@@ -300,7 +289,7 @@
                         <TextBox Grid.Column="0"
                                  PlaceholderText="Type a message..."
                                  VerticalContentAlignment="Center"
-                                 Text="{Binding DraftText, UpdateSourceTrigger=PropertyChanged}">
+                                 Text="{Binding MessageText, UpdateSourceTrigger=PropertyChanged}">
                             <TextBox.KeyBindings>
                                 <KeyBinding Gesture="Enter" Command="{Binding SendMessageCommand}" />
                             </TextBox.KeyBindings>
@@ -315,16 +304,6 @@
                     </Grid>
                 </Border>
             </Grid>
-        </Grid>
-
-                <Button Grid.Column="1"
-                        Content="Send"
-                        Command="{Binding SendMessageCommand}"
-                        Background="{DynamicResource MagicPurpleBrush}"
-                        Foreground="White"/>
-
-            </Grid>
-
         </Grid>
     </Grid>
 </Window>
