@@ -15,6 +15,13 @@ public partial class LoginWindow : Window
         InitializeComponent();
     }
 
+    private void OnRegisterClick(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
+    {
+        var registrationWindow = new RegistrationWindow();
+        registrationWindow.Show();
+        Close();
+    }
+
     private void OnDragAreaPointerPressed(
         object? sender,
         PointerPressedEventArgs e)

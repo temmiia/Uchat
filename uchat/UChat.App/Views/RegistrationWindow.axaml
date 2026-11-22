@@ -1,3 +1,4 @@
+﻿
 <Window xmlns="https://github.com/avaloniaui"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         x:Class="UChat.App.Views.RegistrationWindow"
@@ -7,18 +8,21 @@
         WindowDecorations="None"
         WindowStartupLocation="CenterScreen"
         Background="{DynamicResource AppBgBrush}">
+
     <Grid RowDefinitions="32,*">
         <Border Grid.Row="0"
                 Background="{DynamicResource PanelBgBrush}"
                 BorderBrush="{DynamicResource MagicBorderBrush}"
                 BorderThickness="0,0,0,1"
                 PointerPressed="OnDragAreaPointerPressed">
+
             <TextBlock Text="UChat"
                        Margin="12,0"
                        VerticalAlignment="Center"
                        Foreground="{DynamicResource NeonLavenderBrush}"
                        FontWeight="SemiBold" />
         </Border>
+
         <Border Grid.Row="1"
                 Margin="24"
                 Padding="24"
@@ -27,33 +31,57 @@
                 BorderThickness="1"
                 CornerRadius="14"
                 VerticalAlignment="Center">
+
             <StackPanel Spacing="14">
+
                 <TextBlock Text="Create account"
                            FontSize="24"
                            FontWeight="SemiBold"
                            HorizontalAlignment="Center"
                            Foreground="{DynamicResource NeonLavenderBrush}"
                            Margin="0,0,0,4" />
-                <TextBox PlaceholderText="Username"
+
+                <TextBox x:Name="UsernameBox"
+                         PlaceholderText="Username"
                          Padding="10,8"
                          Background="{DynamicResource AppBgBrush}"
                          BorderBrush="{DynamicResource MagicBorderBrush}" />
-                <TextBox PlaceholderText="Display name"
+
+                <TextBox x:Name="DisplayNameBox"
+                         PlaceholderText="Display name"
                          Padding="10,8"
                          Background="{DynamicResource AppBgBrush}"
                          BorderBrush="{DynamicResource MagicBorderBrush}" />
-                <TextBox PlaceholderText="Password"
-                         PasswordChar="●"
+
+                <TextBox x:Name="PasswordBox"
+                         PlaceholderText="Password"
+                         PasswordChar="*"
                          Padding="10,8"
                          Background="{DynamicResource AppBgBrush}"
                          BorderBrush="{DynamicResource MagicBorderBrush}" />
-                <Button Content="Sign up"
+
+                <TextBlock x:Name="ErrorText"
+                           IsVisible="False"
+                           Foreground="#FF6B6B"
+                           TextWrapping="Wrap"
+                           FontSize="12" />
+
+                <Button x:Name="SignUpButton"
+                        Content="Sign up"
                         Margin="0,4,0,0"
                         Padding="12,9"
                         HorizontalAlignment="Stretch"
                         Background="{DynamicResource MagicPurpleBrush}"
                         Foreground="White"
                         Click="OnSignUpClick" />
+
+                <Button Content="Already have an account? Log in"
+                        HorizontalAlignment="Center"
+                        Background="Transparent"
+                        BorderThickness="0"
+                        Foreground="{DynamicResource NeonLavenderBrush}"
+                        Click="OnLoginClick" />
+
             </StackPanel>
         </Border>
     </Grid>

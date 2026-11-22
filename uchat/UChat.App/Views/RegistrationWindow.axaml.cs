@@ -1,4 +1,5 @@
-
+using Avalonia;
+using Avalonia.Controls.ApplicationLifetimes;
 using System;
 using Avalonia.Controls;
 using Avalonia.Input;
@@ -13,6 +14,20 @@ public partial class RegistrationWindow : Window
     public RegistrationWindow()
     {
         InitializeComponent();
+    }
+
+    private void OnLoginClick(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
+    {
+        var loginWindow = new LoginWindow();
+
+        if (Application.Current?.ApplicationLifetime
+            is IClassicDesktopStyleApplicationLifetime desktop)
+        {
+            desktop.MainWindow = loginWindow;
+        }
+
+        loginWindow.Show();
+        Close();
     }
 
     private void OnDragAreaPointerPressed(
