@@ -292,11 +292,6 @@ public sealed class ChatHub : Hub
         }
     }
 
-    public async Task<IReadOnlyList<MessageResponse>> GetMessages(
-        Guid conversationId,
-        int limit = 50,
-        DateTime? beforeUtc = null,
-        DateTime? afterUtc = null)
     public async Task<IReadOnlyList<MessageResponse>>
         GetMessages(
             Guid conversationId,
