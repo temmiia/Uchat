@@ -1,4 +1,3 @@
-
 using System;
 using System.Collections.Generic;
 using System.Globalization;
@@ -37,8 +36,7 @@ public sealed class MessagesApiClient
 
         request.Headers.Authorization =
             new AuthenticationHeaderValue(
-                "Bearer",
-                AuthSession.AccessToken);
+                "Bearer", AuthSession.AccessToken);
 
         using var response = await Http.SendAsync(request);
 
@@ -46,5 +44,44 @@ public sealed class MessagesApiClient
 
         return await response.Content
             .ReadFromJsonAsync<List<ChatMessage>>() ?? new();
+    }
+
+    public async Task EditMessageAsync(
+        Guid conversationId,
+        Guid messageId,
+        string content)
+    {
+        var url =
+            $"api/conversations/{conversationId:D}/messages/{messageId:D}";
+
+        using var request = new HttpRequestMessage(HttpMethod.Patch, url);
+
+        request.Headers.Authorization =
+            new AuthenticationHeaderValue(
+                "Bearer", AuthSession.AccessToken);
+
+        request.Content = JsonContent.Create(new { Content = content });
+
+        using var response = await Http.SendAsync(request);
+
+        response.EnsureSuccessStatusCode();
+    }
+
+    public async Task DeleteMessageAsync(
+        Guid conversationId,
+        Guid messageId)
+    {
+        var url =
+            $"api/conversations/{conversationId:D}/messages/{messageId:D}";
+
+        using var request = new HttpRequestMessage(HttpMethod.Delete, url);
+
+        request.Headers.Authorization =
+            new AuthenticationHeaderValue(
+                "Bearer", AuthSession.AccessToken);
+
+        using var response = await Http.SendAsync(request);
+
+        response.EnsureSuccessStatusCode();
     }
 }

@@ -97,4 +97,19 @@ public sealed class EfMessageRepository : IMessageRepository
                      m.ClientMessageId == clientMessageId,
                 cancellationToken);
     }
+
+    public async Task UpdateAsync(
+    Message message,
+    CancellationToken cancellationToken = default)
+    {
+        _context.Messages.Attach(message);
+
+        var entry = _context.Entry(message);
+
+        entry.Property(m => m.Content).IsModified = true;
+        entry.Property(m => m.EditedAtUtc).IsModified = true;
+        entry.Property(m => m.IsDeleted).IsModified = true;
+
+        await _context.SaveChangesAsync(cancellationToken);
+    }
 }

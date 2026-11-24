@@ -37,12 +37,15 @@ public sealed class MessagesController : ControllerBase
         CancellationToken cancellationToken = default)
     {
         var accountId = GetCurrentAccountId();
+
         if (string.IsNullOrWhiteSpace(accountId))
         {
             return Unauthorized();
         }
 
-        var isMember = await CheckMembershipAsync(conversationId, accountId, cancellationToken);
+        var isMember = await CheckMembershipAsync(
+            conversationId, accountId, cancellationToken);
+
         if (!isMember)
         {
             return Forbid();
@@ -65,12 +68,15 @@ public sealed class MessagesController : ControllerBase
         CancellationToken cancellationToken = default)
     {
         var accountId = GetCurrentAccountId();
+
         if (string.IsNullOrWhiteSpace(accountId))
         {
             return Unauthorized();
         }
 
-        var isMember = await CheckMembershipAsync(conversationId, accountId, cancellationToken);
+        var isMember = await CheckMembershipAsync(
+            conversationId, accountId, cancellationToken);
+
         if (!isMember)
         {
             return Forbid();
@@ -78,35 +84,132 @@ public sealed class MessagesController : ControllerBase
 
         try
         {
-            var (response, isDuplicate) = await _messageService.SaveMessageAsync(
-                conversationId,
-                accountId,
-                request.Content,
-                request.ClientMessageId,
-                request.CreatedAtUtc,
-                cancellationToken);
+            var (response, isDuplicate) =
+                await _messageService.SaveMessageAsync(
+                    conversationId,
+                    accountId,
+                    request.Content,
+                    request.ClientMessageId,
+                    request.CreatedAtUtc,
+                    cancellationToken);
 
-            // If it's a new message, publish event to real-time subscribers
             if (!isDuplicate)
             {
                 var messageEntity = await _dbContext.Messages
                     .AsNoTracking()
-                    .FirstOrDefaultAsync(m => m.MessageId == response.MessageId, cancellationToken);
+                    .FirstOrDefaultAsync(
+                        m => m.MessageId == response.MessageId,
+                        cancellationToken);
 
                 if (messageEntity is not null)
                 {
-                    await _eventPublisher.PublishMessageCreatedAsync(messageEntity, cancellationToken);
+                    await _eventPublisher.PublishMessageCreatedAsync(
+                        messageEntity,
+                        cancellationToken);
                 }
 
-                return StatusCode(StatusCodes.Status201Created, response);
+                return StatusCode(
+                    StatusCodes.Status201Created, response);
             }
 
-            // If it's an idempotent duplicate, return OK with the existing message
             return Ok(response);
         }
         catch (ArgumentException ex)
         {
             return BadRequest(new { error = ex.Message });
+        }
+    }
+
+    [HttpPatch("{messageId:guid}")]
+    public async Task<IActionResult> EditMessage(
+        [FromRoute] Guid conversationId,
+        [FromRoute] Guid messageId,
+        [FromBody] EditMessageRequest request,
+        CancellationToken cancellationToken = default)
+    {
+        var accountId = GetCurrentAccountId();
+
+        if (string.IsNullOrWhiteSpace(accountId))
+        {
+            return Unauthorized();
+        }
+
+        if (!await CheckMembershipAsync(
+            conversationId, accountId, cancellationToken))
+        {
+            return Forbid();
+        }
+
+        try
+        {
+            var message = await _messageService.EditMessageAsync(
+                conversationId,
+                messageId,
+                accountId,
+                request.Content,
+                cancellationToken);
+
+            await _eventPublisher.PublishMessageEditedAsync(
+                message,
+                cancellationToken);
+
+            return NoContent();
+        }
+        catch (KeyNotFoundException)
+        {
+            return NotFound();
+        }
+        catch (UnauthorizedAccessException)
+        {
+            return Forbid();
+        }
+        catch (ArgumentException ex)
+        {
+            return BadRequest(new { error = ex.Message });
+        }
+    }
+
+    [HttpDelete("{messageId:guid}")]
+    public async Task<IActionResult> DeleteMessage(
+        [FromRoute] Guid conversationId,
+        [FromRoute] Guid messageId,
+        CancellationToken cancellationToken = default)
+    {
+        var accountId = GetCurrentAccountId();
+
+        if (string.IsNullOrWhiteSpace(accountId))
+        {
+            return Unauthorized();
+        }
+
+        if (!await CheckMembershipAsync(
+            conversationId, accountId, cancellationToken))
+        {
+            return Forbid();
+        }
+
+        try
+        {
+            await _messageService.DeleteMessageAsync(
+                conversationId,
+                messageId,
+                accountId,
+                cancellationToken);
+
+            await _eventPublisher.PublishMessageDeletedAsync(
+                conversationId,
+                messageId,
+                cancellationToken);
+
+            return NoContent();
+        }
+        catch (KeyNotFoundException)
+        {
+            return NotFound();
+        }
+        catch (UnauthorizedAccessException)
+        {
+            return Forbid();
         }
     }
 
@@ -120,5 +223,8 @@ public sealed class MessagesController : ControllerBase
         CancellationToken cancellationToken) =>
         _dbContext.Members
             .AsNoTracking()
-            .AnyAsync(m => m.ConversationId == conversationId && m.AccountId == accountId, cancellationToken);
+            .AnyAsync(
+                m => m.ConversationId == conversationId &&
+                     m.AccountId == accountId,
+                cancellationToken);
 }

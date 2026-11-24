@@ -1,4 +1,4 @@
-
+using UChat.Server.Services;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
@@ -17,9 +17,12 @@ public sealed class ConversationsController : ControllerBase
 {
     private readonly AppDbContext _db;
 
-    public ConversationsController(AppDbContext db)
+    private readonly ChatEventPublisher _events;
+
+    public ConversationsController(AppDbContext db, ChatEventPublisher events)
     {
         _db = db;
+        _events = events;
     }
 
     private string? CurrentAccountId =>
@@ -129,6 +132,7 @@ public sealed class ConversationsController : ControllerBase
 
         await _db.SaveChangesAsync(cancellationToken);
         await transaction.CommitAsync(cancellationToken);
+        await _events.PublishConversationCreatedAsync(accountId, target.AccountId, conversation.ConversationId);
 
         return StatusCode(
             StatusCodes.Status201Created,

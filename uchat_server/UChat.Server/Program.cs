@@ -5,6 +5,7 @@ using UChat.Application.Auth;
 using UChat.Application.Messages;
 using UChat.Application.Users;
 using UChat.Domain.Entities;
+using Microsoft.AspNetCore.SignalR;
 using UChat.Infrastructure.Data;
 using UChat.Infrastructure.Repositories;
 using System.Text;
@@ -20,6 +21,10 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddOpenApi();
 builder.Services.AddControllers();
 builder.Services.AddSignalR();
+
+builder.Services.AddSingleton<
+    IUserIdProvider,
+    AccountUserIdProvider>();
 builder.Services.AddScoped<LoginUserService>();
 builder.Services.AddDbContext<AppDbContext>();
 

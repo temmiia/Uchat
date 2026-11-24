@@ -1,4 +1,3 @@
-
 <Window xmlns="https://github.com/avaloniaui"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:vm="using:UChat.App.ViewModels"
@@ -40,7 +39,7 @@
     </Window.Styles>
 
     <Grid RowDefinitions="32, *">
-        <!-- Власна верхня панель вікна -->
+        
         <Grid Grid.Row="0"
               Background="{DynamicResource AppBgBrush}"
               PointerPressed="OnTitleBarPointerPressed">
@@ -56,7 +55,7 @@
             </StackPanel>
 
             <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
-                <!-- Згорнути  -->
+                
                 <Button Classes="CaptionBtn" Click="OnMinimizeClick">
                     <Viewbox Width="12" Height="12">
                         <Path Stroke="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}"
@@ -65,7 +64,7 @@
                     </Viewbox>
                 </Button>
 
-                <!-- Розгорнути / Відновити  -->
+                
                 <Button Classes="CaptionBtn" Click="OnMaximizeClick">
                     <Viewbox Width="12" Height="12">
                         <Path Stroke="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}"
@@ -74,7 +73,7 @@
                     </Viewbox>
                 </Button>
 
-                <!-- Закрити  -->
+                
                 <Button Classes="CaptionBtn CloseBtn" Click="OnCloseClick">
                     <Viewbox Width="12" Height="12">
                         <Path Stroke="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}"
@@ -85,16 +84,16 @@
             </StackPanel>
         </Grid>
 
-        <!-- Основний вміст вікна -->
+        
         <Grid Grid.Row="1" ColumnDefinitions="300,*">
-            <!-- Бічна панель містить заголовок, пошук і список доступних чатів. -->
+            
             <Border Grid.Column="0"
                     Background="{DynamicResource PanelBgBrush}"
                     BorderBrush="{DynamicResource MagicBorderBrush}"
                     BorderThickness="0,0,1,0">
                 <Grid RowDefinitions="Auto,*">
-                    <!-- Заголовок і поле пошуку чатів. Значення пошуку оновлює список одразу. -->
-                    <!-- Назва, яку мускот "краде" (див. MainWindow.axaml.cs) -->
+                    
+                    
                     <TextBlock x:Name="TitleText"
                                Grid.Row="0"
                                Text="Messages"
@@ -168,12 +167,12 @@
                                  RenderOptions.BitmapInterpolationMode="HighQuality" />
                     </Grid>
 
-                    <!-- Список відфільтрованих чатів; вибраний елемент визначає відкриту переписку. -->
+                    
                     <ListBox Grid.Row="1"
                              Background="Transparent"
                              ItemsSource="{Binding Conversations}"
                              SelectedItem="{Binding SelectedConversation, Mode=TwoWay}">
-                        <!-- Шаблон одного чату: ініціали, ім'я, останнє повідомлення та час. -->
+                        
                         <ListBox.ItemTemplate>
                             <DataTemplate x:DataType="models:ChatConversation">
                                 <Border Padding="10" CornerRadius="10">
@@ -214,9 +213,9 @@
                 </Grid>
             </Border>
 
-            <!-- Область відкритої переписки: заголовок, історія повідомлень і поле введення. -->
+            
             <Grid Grid.Column="1" RowDefinitions="68,Auto,*,Auto">
-                <!-- Ім'я співрозмовника або назва групи вибраного чату. -->
+                
                 <Border Grid.Row="0"
                         Background="{DynamicResource PanelBgBrush}"
                         BorderBrush="{DynamicResource MagicBorderBrush}"
@@ -246,62 +245,67 @@
                 <StackPanel Grid.Row="1" Orientation="Horizontal" Spacing="8" Margin="12,8">
                     <TextBox Width="190" PlaceholderText="Username for new chat" Text="{Binding NewChatUsername}" />
                     <Button Content="New Chat" Command="{Binding CreateChatCommand}" />
-                    <Button Content="Refresh" Command="{Binding RefreshConversationsCommand}" />
+                    
                 </StackPanel>
 
-                <!-- Історія повідомлень прокручується; вирівнювання кожного повідомлення задається моделлю. -->
+                
                 <ScrollViewer Grid.Row="2" Padding="18">
                     <StackPanel Spacing="8">
                         <Button Content="Load older messages"
                                 Command="{Binding LoadOlderMessagesCommand}"
                                 HorizontalAlignment="Center" />
                     <ItemsControl ItemsSource="{Binding Messages}">
-                        <!-- Бульбашка повідомлення з текстом і часом відправлення. -->
+                        
                         <ItemsControl.ItemTemplate>
                             <DataTemplate x:DataType="models:ChatMessage">
-                                <Border MaxWidth="520"
-                                        Margin="0, 5"
-                                        Padding="12,9"
-                                        CornerRadius="12"
-                                        Background="{DynamicResource PanelBgBrush}"
-                                        HorizontalAlignment="Left">
-                                    <StackPanel Spacing="4">
-                                        <TextBlock Text="{Binding Content}" TextWrapping="Wrap" />
-                                        <TextBlock Text="{Binding CreatedAtUtc}"
-                                                   FontSize="10"
-                                                   Opacity="0.65"
-                                                   HorizontalAlignment="Right" />
-                                    </StackPanel>
-                                </Border>
-                            </DataTemplate>
+    <Grid>
+        <Border IsVisible="{Binding !IsOwnMessage}" HorizontalAlignment="Left" MaxWidth="520" Margin="0,5" Padding="12,9" CornerRadius="12" Background="{DynamicResource PanelBgBrush}">
+            <StackPanel Spacing="4">
+                <TextBlock Text="{Binding SenderLabel}" Foreground="#89B4FA" FontWeight="SemiBold" />
+                <TextBlock Text="{Binding Content}" TextWrapping="Wrap" />
+                <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Spacing="6">
+                    <TextBlock Text="edited" IsVisible="{Binding IsEdited}" FontSize="10" Opacity="0.65" />
+                    <TextBlock Text="{Binding DisplayTime}" FontSize="10" Opacity="0.65" />
+                </StackPanel>
+            </StackPanel>
+        </Border>
+        <Border IsVisible="{Binding IsOwnMessage}" HorizontalAlignment="Right" MaxWidth="520" Margin="0,5" Padding="12,9" CornerRadius="12" Background="#514078">
+            <Border.ContextMenu>
+                <ContextMenu>
+                    <MenuItem Header="Edit message" CommandParameter="{Binding}" Click="OnEditMessageClick" />
+                    <MenuItem Header="Delete message" CommandParameter="{Binding}" Click="OnDeleteMessageClick" />
+                </ContextMenu>
+            </Border.ContextMenu>
+            <StackPanel Spacing="4">
+                <TextBlock Text="You" Foreground="#CBA6F7" FontWeight="SemiBold" />
+                <TextBlock Text="{Binding Content}" TextWrapping="Wrap" />
+                <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Spacing="6">
+                    <TextBlock Text="edited" IsVisible="{Binding IsEdited}" FontSize="10" Opacity="0.65" />
+                    <TextBlock Text="{Binding DisplayTime}" FontSize="10" Opacity="0.65" />
+                </StackPanel>
+            </StackPanel>
+        </Border>
+    </Grid>
+</DataTemplate>
                         </ItemsControl.ItemTemplate>
                     </ItemsControl>
                     </StackPanel>
                 </ScrollViewer>
 
-                <!-- Поле для нового повідомлення та кнопка відправлення. Enter виконує ту саму команду. -->
+                
                 <Border Grid.Row="3"
                         Background="{DynamicResource PanelBgBrush}"
                         BorderBrush="{DynamicResource MagicBorderBrush}"
                         BorderThickness="0,1,0,0"
                         Padding="12">
-                    <Grid ColumnDefinitions="*,Auto">
-                        <TextBox Grid.Column="0"
-                                 PlaceholderText="Type a message..."
-                                 VerticalContentAlignment="Center"
-                                 Text="{Binding MessageText, UpdateSourceTrigger=PropertyChanged}">
-                            <TextBox.KeyBindings>
-                                <KeyBinding Gesture="Enter" Command="{Binding SendMessageCommand}" />
-                            </TextBox.KeyBindings>
-                        </TextBox>
-                        <Button Grid.Column="1"
-                                Margin="10,0,0,0"
-                                Padding="18,8"
-                                Content="Send"
-                                Command="{Binding SendMessageCommand}"
-                                Background="{DynamicResource MagicPurpleBrush}"
-                                Foreground="White" />
-                    </Grid>
+                    <Grid ColumnDefinitions="*,Auto,Auto" RowDefinitions="Auto,Auto">
+    <TextBlock Grid.ColumnSpan="3" Text="Editing message" IsVisible="{Binding IsEditing}" Margin="0,0,0,8" />
+    <TextBox Grid.Row="1" PlaceholderText="Type a message..." Text="{Binding MessageText, UpdateSourceTrigger=PropertyChanged}">
+        <TextBox.KeyBindings><KeyBinding Gesture="Enter" Command="{Binding SendMessageCommand}" /></TextBox.KeyBindings>
+    </TextBox>
+    <Button Grid.Row="1" Grid.Column="1" Content="Cancel" IsVisible="{Binding IsEditing}" Command="{Binding CancelEditCommand}" Margin="10,0,0,0" />
+    <Button Grid.Row="1" Grid.Column="2" Content="{Binding SendButtonText}" Command="{Binding SendMessageCommand}" Background="{DynamicResource MagicPurpleBrush}" Foreground="White" Margin="10,0,0,0" />
+</Grid>
                 </Border>
             </Grid>
         </Grid>
