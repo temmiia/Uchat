@@ -4,17 +4,77 @@
              RequestedThemeVariant="Dark">
 
     <Application.Resources>
+        <!-- Магічна фіолетова палітра -->
+        <SolidColorBrush x:Key="CanvasBrush"      Color="#130E1F"/>   <!-- фон вікна -->
+        <SolidColorBrush x:Key="SidebarBrush"     Color="#0D0817"/>   <!-- найтемніша бічна панель -->
+        <SolidColorBrush x:Key="SidebarCardBrush" Color="#1D1530"/>   <!-- картки чатів, пошук -->
+        <SolidColorBrush x:Key="SurfaceBrush"     Color="#1D1530"/>   <!-- велика панель переписки -->
+        <SolidColorBrush x:Key="CardBrush"        Color="#2A1F47"/>   <!-- бульбашки, поле введення -->
+        <SolidColorBrush x:Key="FieldBrush"       Color="#130E1F"/>   <!-- поля вводу на картці -->
+        <SolidColorBrush x:Key="BorderBrushMagic" Color="#3B2A63"/>
+        <SolidColorBrush x:Key="AccentBrush"      Color="#7C3AED"/>   <!-- MagicPurple -->
+        <SolidColorBrush x:Key="NeonBrush"        Color="#A855F7"/>   <!-- NeonLavender -->
+        <SolidColorBrush x:Key="TextBrush"        Color="#F3EEFF"/>
+        <SolidColorBrush x:Key="MutedTextBrush"   Color="#A79BC7"/>
+        <SolidColorBrush x:Key="DangerBrush"      Color="#FF6B6B"/>
 
-        <SolidColorBrush x:Key="AppBgBrush" Color="#130E1F"/>         
-        <SolidColorBrush x:Key="PanelBgBrush" Color="#1D1530"/>   
-        <SolidColorBrush x:Key="MagicPurpleBrush" Color="#7C3AED"/>   
-        <SolidColorBrush x:Key="NeonLavenderBrush" Color="#A855F7"/> 
-        <SolidColorBrush x:Key="MagicBorderBrush" Color="#3B2A63"/>  
-        
+        <LinearGradientBrush x:Key="AccentGradientBrush" StartPoint="0%,0%" EndPoint="100%,100%">
+            <GradientStop Color="#7C3AED" Offset="0"/>
+            <GradientStop Color="#A855F7" Offset="1"/>
+        </LinearGradientBrush>
+
         <Color x:Key="SystemAccentColor">#8B5CF6</Color>
     </Application.Resources>
 
     <Application.Styles>
         <FluentTheme />
+
+        <!-- ===== Спільні стилі ===== -->
+
+        <!-- Основна кнопка: лайм, чорний текст, «пілюля» -->
+        <Style Selector="Button.Primary">
+            <Setter Property="Background" Value="{DynamicResource AccentBrush}"/>
+            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="CornerRadius" Value="22"/>
+            <Setter Property="HorizontalContentAlignment" Value="Center"/>
+            <Setter Property="VerticalContentAlignment" Value="Center"/>
+        </Style>
+        <Style Selector="Button.Primary:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+            <Setter Property="Background" Value="#8B5CF6"/>
+            <Setter Property="Foreground" Value="White"/>
+        </Style>
+        <Style Selector="Button.Primary:pressed /template/ ContentPresenter#PART_ContentPresenter">
+            <Setter Property="Background" Value="#6D28D9"/>
+        </Style>
+
+        <!-- Текстова кнопка-посилання -->
+        <Style Selector="Button.Link">
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Foreground" Value="{DynamicResource MutedTextBrush}"/>
+        </Style>
+        <Style Selector="Button.Link:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="Foreground" Value="{DynamicResource NeonBrush}"/>
+        </Style>
+
+        <!-- Поле вводу у вигляді світлої «пілюлі» (логін/реєстрація) -->
+        <Style Selector="TextBox.Pill">
+            <Setter Property="Background" Value="{DynamicResource FieldBrush}"/>
+            <Setter Property="Foreground" Value="{DynamicResource TextBrush}"/>
+            <Setter Property="PlaceholderForeground" Value="{DynamicResource MutedTextBrush}"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="CornerRadius" Value="22"/>
+            <Setter Property="Padding" Value="18,12"/>
+        </Style>
+        <Style Selector="TextBox.Pill:pointerover /template/ Border#PART_BorderElement">
+            <Setter Property="Background" Value="{DynamicResource FieldBrush}"/>
+        </Style>
+        <Style Selector="TextBox.Pill:focus /template/ Border#PART_BorderElement">
+            <Setter Property="Background" Value="{DynamicResource FieldBrush}"/>
+            <Setter Property="BorderBrush" Value="{DynamicResource NeonBrush}"/>
+            <Setter Property="BorderThickness" Value="1.5"/>
+        </Style>
     </Application.Styles>
 </Application>

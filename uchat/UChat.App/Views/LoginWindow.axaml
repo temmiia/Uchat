@@ -1,87 +1,77 @@
-﻿
 <Window xmlns="https://github.com/avaloniaui"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         x:Class="UChat.App.Views.LoginWindow"
         Title="Log in - UChat"
         Width="420"
-        Height="440"
+        Height="520"
         WindowDecorations="None"
         WindowStartupLocation="CenterScreen"
-        Background="{DynamicResource AppBgBrush}">
+        Background="{DynamicResource CanvasBrush}">
 
     <Grid RowDefinitions="32,*">
 
-        <!-- Верхняя панель -->
+        <!-- Верхня панель (перетягування вікна) -->
         <Border Grid.Row="0"
-                Background="{DynamicResource PanelBgBrush}"
-                BorderBrush="{DynamicResource MagicBorderBrush}"
-                BorderThickness="0,0,0,1"
+                Background="Transparent"
                 PointerPressed="OnDragAreaPointerPressed">
-
             <TextBlock Text="UChat"
-                       Margin="12,0"
+                       Margin="16,0"
                        VerticalAlignment="Center"
-                       Foreground="{DynamicResource NeonLavenderBrush}"
+                       Foreground="{DynamicResource MutedTextBrush}"
+                       FontSize="12"
                        FontWeight="SemiBold" />
         </Border>
 
-        <!-- Карточка авторизации -->
+        <!-- Біла картка -->
         <Border Grid.Row="1"
-                Margin="24"
-                Padding="24"
-                Background="{DynamicResource PanelBgBrush}"
-                BorderBrush="{DynamicResource MagicBorderBrush}"
+                Margin="16,4,16,16"
+                Padding="28"
+                Background="{DynamicResource SurfaceBrush}"
+                BorderBrush="{DynamicResource BorderBrushMagic}"
                 BorderThickness="1"
-                CornerRadius="14"
+                CornerRadius="32"
                 VerticalAlignment="Center">
 
             <StackPanel Spacing="14">
 
+                <!-- Лого: лаймова зірочка на чорному -->
+                <Border Width="56" Height="56"
+                        CornerRadius="20"
+                        Background="{DynamicResource AccentGradientBrush}"
+                        HorizontalAlignment="Center">
+                    <TextBlock Text="✱"
+                               FontSize="30"
+                               Foreground="White"
+                               HorizontalAlignment="Center"
+                               VerticalAlignment="Center" />
+                </Border>
+
                 <TextBlock Text="Welcome back!"
-                           FontSize="24"
+                           FontSize="26"
                            FontWeight="SemiBold"
                            HorizontalAlignment="Center"
-                           Foreground="{DynamicResource NeonLavenderBrush}"
-                           Margin="0,0,0,4" />
+                           Foreground="{DynamicResource TextBrush}"
+                           Margin="0,6,0,6" />
+                <TextBox x:Name="UsernameBox" Classes="Pill" PlaceholderText="Username" />
+                <TextBox x:Name="PasswordBox" Classes="Pill" PlaceholderText="Password" PasswordChar="*" />
 
-                <TextBox x:Name="UsernameBox"
-                         PlaceholderText="Username"
-                         Padding="10,8"
-                         Background="{DynamicResource AppBgBrush}"
-                         BorderBrush="{DynamicResource MagicBorderBrush}" />
-
-                <TextBox x:Name="PasswordBox"
-                         PlaceholderText="Password"
-                         PasswordChar="*"
-                         Padding="10,8"
-                         Background="{DynamicResource AppBgBrush}"
-                         BorderBrush="{DynamicResource MagicBorderBrush}" />
-
-                <!-- Ошибки авторизации -->
                 <TextBlock x:Name="ErrorText"
                            IsVisible="False"
-                           Foreground="#FF6B6B"
+                           Foreground="{DynamicResource DangerBrush}"
                            TextWrapping="Wrap"
                            FontSize="12" />
 
-                <!-- Вход через бэкенд -->
                 <Button x:Name="LoginButton"
+                        Classes="Primary"
                         Content="Log in"
                         Margin="0,4,0,0"
-                        Padding="12,9"
+                        Padding="12,13"
                         HorizontalAlignment="Stretch"
-                        Background="{DynamicResource MagicPurpleBrush}"
-                        Foreground="White"
                         Click="OnLoginClick" />
-
-                <!-- Переход на регистрацию -->
-                <Button Content="Don't have an account? Sign up"
+                <Button Classes="Link"
+                        Content="Don't have an account? Sign up"
                         HorizontalAlignment="Center"
-                        Background="Transparent"
-                        BorderThickness="0"
-                        Foreground="{DynamicResource NeonLavenderBrush}"
                         Click="OnRegisterClick" />
-
             </StackPanel>
         </Border>
     </Grid>

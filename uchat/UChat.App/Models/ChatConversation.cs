@@ -1,4 +1,5 @@
 using System;
+using System.Linq;
 
 namespace UChat.App.Models;
 
@@ -12,6 +13,17 @@ public sealed class ChatConversation
 
     public string? TargetUsername { get; set; }
 
+    // Ініціали для аватара в списку чатів (до двох літер)
+    public string Initials
+    {
+        get
+        {
+            var parts = DisplayName.Split(' ', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+            if (parts.Length == 0) return "?";
+            var letters = parts.Take(2).Select(p => char.ToUpperInvariant(p[0]));
+            return string.Concat(letters);
+        }
+    }
     public string? MyRole { get; set; }
 
     public bool IsGroup => Type == "Group";
