@@ -1,4 +1,3 @@
-
 using System;
 
 namespace UChat.App.Models;
@@ -13,4 +12,5 @@ public sealed class ChatMessage
     public DateTime? ServerReceivedAtUtc { get; set; }
     public DateTime? EditedAtUtc { get; set; }
     public string? ClientMessageId { get; set; }
+    public bool IsOwnMessage { get; set; }
 }

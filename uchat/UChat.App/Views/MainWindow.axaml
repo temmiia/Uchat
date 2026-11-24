@@ -6,6 +6,7 @@
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         mc:Ignorable="d" d:DesignWidth="1000" d:DesignHeight="650"
+        x:Name="MainRoot"
         x:Class="UChat.App.Views.MainWindow"
         x:DataType="vm:MainViewModel"
         PointerMoved="OnPointerMoved"
@@ -26,6 +27,38 @@
             <Setter Property="VerticalContentAlignment" Value="Center"/>
         </Style>
 
+        <Style Selector="Button.ChatAction">
+            <Setter Property="Width" Value="50"/>
+            <Setter Property="Height" Value="35"/>
+            <Setter Property="Background" Value="#40000000"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="CornerRadius" Value="8"/>
+            <Setter Property="Padding" Value="0"/>
+            <Setter Property="HorizontalAlignment" Value="Center"/>
+            <Setter Property="VerticalAlignment" Value="Center"/>
+            <Setter Property="HorizontalContentAlignment" Value="Center"/>
+            <Setter Property="VerticalContentAlignment" Value="Center"/>
+        </Style>
+
+        <Style Selector="Button.ChatAction /template/ ContentPresenter">
+            <Setter Property="Background" Value="{TemplateBinding Background}"/>
+            <Setter Property="CornerRadius" Value="{TemplateBinding CornerRadius}"/>
+            <Setter Property="Padding" Value="{TemplateBinding Padding}"/>
+        </Style>
+
+        <Style Selector="Button.ChatAction:pointerover /template/ ContentPresenter">
+            <Setter Property="Background" Value="#60000000"/>
+        </Style>
+
+        <Style Selector="Border.InputFrame.focused">
+            <Setter Property="BorderBrush" Value="{DynamicResource NeonLavenderBrush}"/>
+        </Style>
+
+        <Style Selector="TextBox:focus /template/ Border#PART_BorderElement">
+            <Setter Property="BorderBrush" Value="Transparent"/>
+            <Setter Property="Background" Value="Transparent"/>
+        </Style>
+
         <Style Selector="Button.CaptionBtn:pointerover /template/ ContentPresenter">
             <Setter Property="Background" Value="#20FFFFFF"/>
         </Style>
@@ -44,6 +77,7 @@
         <Grid Grid.Row="0"
               Background="{DynamicResource AppBgBrush}"
               PointerPressed="OnTitleBarPointerPressed">
+
             <StackPanel Orientation="Horizontal"
                         Spacing="6"
                         Margin="6,0,0,0"
@@ -92,7 +126,7 @@
                     Background="{DynamicResource PanelBgBrush}"
                     BorderBrush="{DynamicResource MagicBorderBrush}"
                     BorderThickness="0,0,1,0">
-                <Grid RowDefinitions="Auto,*">
+                <Grid RowDefinitions="Auto,Auto,Auto,Auto,*">
                     <!-- Заголовок і поле пошуку чатів. Значення пошуку оновлює список одразу. -->
                     <!-- Назва, яку мускот "краде" (див. MainWindow.axaml.cs) -->
                     <TextBlock x:Name="TitleText"
@@ -168,10 +202,192 @@
                                  RenderOptions.BitmapInterpolationMode="HighQuality" />
                     </Grid>
 
+                    <Border Grid.Row="1"
+                            x:Name="SearchInputFrame"
+                            Classes="InputFrame"
+                            Margin="14,0,14,12"
+                            Padding="10,2"
+                            Background="{DynamicResource AppBgBrush}"
+                            BorderBrush="{DynamicResource MagicBorderBrush}"
+                            BorderThickness="1"
+                            CornerRadius="10">
+                        <Grid ColumnDefinitions="Auto,*" ColumnSpacing="8">
+                            <Path Width="16"
+                                  Height="16"
+                                  Stroke="{DynamicResource MagicPurpleBrush}"
+                                  StrokeThickness="1.8"
+                                  StrokeLineCap="Round"
+                                  Data="M11 11 L16 16 M12.5 7.5 A5 5 0 1 1 2.5 7.5 A5 5 0 0 1 12.5 7.5 Z"
+                                  VerticalAlignment="Center" />
+                            <TextBox Grid.Column="1"
+                                     x:Name="SearchInput"
+                                     FocusAdorner="{x:Null}"
+                                     Background="Transparent"
+                                     BorderThickness="0"
+                                     CornerRadius="9"
+                                     Padding="0"
+                                     VerticalContentAlignment="Center"
+                                     GotFocus="OnInputGotFocus"
+                                     LostFocus="OnInputLostFocus"
+                                     PlaceholderText="Search chats"
+                                     Text="{Binding SearchText, UpdateSourceTrigger=PropertyChanged}" />
+                        </Grid>
+                    </Border>
+
+                    <Grid Grid.Row="2"
+                          ColumnDefinitions="*,*,*"
+                          ColumnSpacing="0"
+                          Margin="14,0,14,12">
+                        <Button Grid.Column="0"
+                                Background="#40000000"
+                                BorderThickness="0"
+                                Padding="0"
+                                VerticalContentAlignment="Center"
+                                Classes="ChatAction"
+                                Command="{Binding ToggleNewChatInputCommand}"
+                                ToolTip.Tip="Username for new chat">
+
+                            <StackPanel Spacing="4" HorizontalAlignment="Center">
+                                    <PathIcon Width="20"
+                                               Height="40"
+                                               Margin="0,-2,0,0"
+                                               Foreground="{DynamicResource MagicPurpleBrush}">
+                                        <PathIcon.Data>
+                                            <GeometryGroup>
+                                                <StreamGeometry>
+                                                M46.4,69.267
+                                                h33.109
+                                                c2.018,0,3.873-0.818,5.182-2.128
+                                                c1.364-1.309,2.127-3.055,2.127-4.965
+                                                V51.427
+                                                v-12.93
+                                                c0-1.418,0.709-2.673,1.8-3.382
+                                                c0.655-0.436,1.473-0.709,2.291-0.709
+                                                c2.291,0,4.091,1.8,4.091,4.092
+                                                v12.93
+                                                v10.748
+                                                c0,8.456-6.982,15.276-15.491,15.276
+                                                H47.655
+                                                L22.727,94.309
+                                                c-0.927,0.655-2.073,0.818-3.109,0.6
+                                                c-0.164,0-0.382-0.055-0.545-0.164
+                                                c-0.382-0.164-0.764-0.327-1.091-0.6
+                                                c-0.327-0.218-0.655-0.546-0.927-0.927
+                                                c-0.491-0.709-0.709-1.473-0.709-2.291
+                                                V76.851
+                                                C9.8,75.105,5,69.213,5,62.175
+                                                V51.427
+                                                V19.73
+                                                v-0.382
+                                                l0.055-0.6
+                                                l0.055-0.055
+                                                C5.927,10.947,12.473,5,20.436,5
+                                                h41.073
+                                                C63.8,5,65.6,6.8,65.6,9.092
+                                                c0,2.237-1.8,4.092-4.091,4.092
+                                                H20.436
+                                                c-3.764,0-6.764,2.782-7.2,6.274
+                                                v0.109
+                                                l-0.055,0.327
+                                                v31.534
+                                                v10.748
+                                                c0,3.819,3.218,7.092,7.255,7.092
+                                                c2.236,0,4.091,1.855,4.091,4.092
+                                                v9.875
+                                                l19.582-13.257
+                                                c0.273-0.164,0.545-0.327,0.818-0.436
+                                                c0.218-0.109,0.436-0.164,0.655-0.164
+                                                C45.855,69.267,46.127,69.267,46.4,69.267
+                                                z
+                                                </StreamGeometry>
+                                                <StreamGeometry>
+                                                M65.273,17.603
+                                                c0.764-0.764,1.8-1.2,2.891-1.2
+                                                h7.255
+                                                V9.092
+                                                C75.418,6.8,77.273,5,79.509,5
+                                                C81.8,5,83.6,6.8,83.6,9.092
+                                                v7.311
+                                                h7.309
+                                                c2.291,0,4.091,1.8,4.091,4.092
+                                                c0,2.237-1.8,4.092-4.091,4.092
+                                                H83.6
+                                                v7.256
+                                                c0,1.091-0.436,2.128-1.2,2.891
+                                                c-0.709,0.709-1.745,1.2-2.891,1.2
+                                                c-2.236,0-4.091-1.855-4.091-4.092
+                                                v-7.256
+                                                h-7.255
+                                                c-2.236,0-4.091-1.855-4.091-4.092
+                                                C64.073,19.348,64.564,18.312,65.273,17.603
+                                                z
+                                                </StreamGeometry>
+                                            </GeometryGroup>
+                                        </PathIcon.Data>
+                                    </PathIcon>
+                            </StackPanel>
+                        </Button>
+                        <Button Grid.Column="1"
+                                Background="#40000000"
+                                Classes="ChatAction"
+                                Command="{Binding CreateChatCommand}">
+                            <StackPanel Spacing="4" HorizontalAlignment="Center">
+                                <Path Width=""
+                                      Height=""
+                                      Margin="0,-1,2,0"
+                                      Stroke="{DynamicResource MagicPurpleBrush}"
+                                      StrokeThickness="2"
+                                      StrokeLineCap="Round"
+                                      Data="M12 2 A10 10 0 1 1 2 12 A10 10 0 0 1 12 2 Z M12 7 V17 M7 12 H17" />
+                            </StackPanel>
+                        </Button>
+                        <Button Grid.Column="2"
+                                Background="#40000000"
+                                Classes="ChatAction"
+                                Command="{Binding RefreshConversationsCommand}">
+                            <StackPanel Spacing="4" HorizontalAlignment="Center">
+                                            <PathIcon Foreground="{DynamicResource MagicPurpleBrush}"
+                                                      Margin="5,4,0,0"
+                                                      Width="30"
+                                                      Height="30"
+                                                      RenderTransformOrigin="1,1"
+                                                      Data="m 49.969 11.805 c -13.652 0 -26.277 7.2812 -33.105 19.098 l 0.003907 -0.003906 c -0.85938 1.4844 -0.35156 3.3789 1.1289 4.2344 c 1.4844 0.85547 3.3789 0.34766 4.2344 -1.1367 c 5.7227 -9.9062 16.293 -15.988 27.738 -15.988 c 15.637 0 28.613 11.117 31.449 25.898 l -8.5156 -5.5391 c -1.4375 -0.92578 -3.3555 -0.51563 -4.2852 0.91797 c -0.93359 1.4336 -0.52734 3.3477 0.89844 4.2812 l 13.883 9.0352 v 0.003907 c 0.039062 0.023437 0.078124 0.042969 0.11328 0.066406 c 0.023437 0.011719 0.046875 0.023437 0.070312 0.03125 c 0.097657 0.058594 0.19922 0.10938 0.30469 0.15234 c 0.023437 0.011719 0.046875 0.019531 0.070312 0.027343 c 0.09375 0.039063 0.1875 0.070313 0.28516 0.10156 c 0.046874 0.011719 0.089843 0.023437 0.13672 0.03125 c 0.082032 0.023437 0.16797 0.039063 0.25391 0.054687 c 0.050782 0.007813 0.10156 0.015626 0.15234 0.019532 c 0.082032 0.011718 0.16406 0.015625 0.25 0.019531 c 0.019532 0.003906 0.042969 0.003906 0.066406 0.003906 c 0.03125 0 0.0625 -0.003906 0.09375 -0.003906 c 0.082032 -0.003906 0.16406 -0.007813 0.24609 -0.015625 c 0.054688 -0.007812 0.10938 -0.015625 0.16016 -0.027344 c 0.085938 -0.011718 0.16797 -0.03125 0.25 -0.050781 c 0.042969 -0.015625 0.085938 -0.027344 0.12891 -0.042969 c 0.078125 -0.023437 0.16016 -0.050781 0.23828 -0.078125 c 0.070312 -0.027343 0.13672 -0.054687 0.20312 -0.085937 c 0.042969 -0.023438 0.089844 -0.042969 0.13281 -0.066406 c 0.10547 -0.058594 0.21094 -0.12109 0.30859 -0.1875 v -0.015626 c 0.10156 -0.074218 0.19922 -0.15234 0.29297 -0.23828 v -0.019531 c 0.082031 -0.074219 0.15625 -0.15234 0.23047 -0.23047 c 0.019531 -0.023437 0.042969 -0.046875 0.066406 -0.070312 c 0.082031 -0.09375 0.15625 -0.19531 0.22656 -0.30469 l 0.074218 -0.10938 v -0.003906 l 8.9688 -13.758 c 0.93359 -1.4375 0.51953 -3.3555 -0.91406 -4.2852 c -1.4375 -0.92969 -3.3516 -0.52734 -4.2891 0.90234 l -4.3711 6.7109 c -4.0078 -16.809 -19.168 -29.34 -37.195 -29.34 Z m -35.148 35.098 h 0.003907 c -0.12891 0 -0.25781 0.007812 -0.38281 0.027344 c -0.12891 0.015624 -0.25781 0.039062 -0.38281 0.070312 v 0.015625 c -0.125 0.03125 -0.24609 0.074219 -0.36719 0.125 c -0.12109 0.046875 -0.24219 0.10547 -0.35547 0.16797 v 0.019531 c -0.10547 0.0625 -0.21094 0.13281 -0.30859 0.20703 v 0.019532 c -0.089844 0.070312 -0.17188 0.14453 -0.25391 0.21875 c -0.03125 0.035156 -0.0625 0.066406 -0.09375 0.097656 c -0.066407 0.070312 -0.12891 0.14062 -0.1875 0.21094 c -0.023438 0.027344 -0.046876 0.050781 -0.066407 0.078125 c -0.039062 0.050782 -0.078125 0.097656 -0.11719 0.15234 l -9.0273 13.871 h 0.003906 c -0.45312 0.6875 -0.60938 1.5273 -0.44141 2.3359 c 0.16797 0.80469 0.65234 1.5117 1.3398 1.9609 c 1.4375 0.92969 3.3594 0.51953 4.2891 -0.91406 l 4.3711 -6.707 c 4.0078 16.809 19.168 29.348 37.195 29.348 c 13.652 0 26.277 -7.2812 33.105 -19.098 l 0.003907 0.003906 c 0.85547 -1.4844 0.35156 -3.3789 -1.1289 -4.2344 c -1.4805 -0.85938 -3.3789 -0.35547 -4.2383 1.125 c -5.7227 9.9062 -16.293 16.004 -27.738 16.004 c -15.637 0 -28.609 -11.121 -31.449 -25.902 l 8.5117 5.5391 c 1.4375 0.92969 3.3594 0.51953 4.293 -0.91406 c 0.92969 -1.4336 0.52734 -3.3516 -0.90625 -4.2852 l -13.879 -9.0352 v -0.003906 c -0.042969 -0.023438 -0.089843 -0.050781 -0.13281 -0.074219 v -0.007812 v -0.011719 c -0.10938 -0.0625 -0.22266 -0.11719 -0.33594 -0.16797 v -0.003906 c -0.11719 -0.050781 -0.23828 -0.09375 -0.36328 -0.125 c 0 -0.003906 -0.003906 -0.003906 -0.003906 -0.003906 v -0.003907 c -0.125 -0.03125 -0.25 -0.054687 -0.375 -0.074218 v -0.003906 c -0.12109 -0.015626 -0.24609 -0.023438 -0.37109 -0.023438 Z">
+                                                <PathIcon.RenderTransform>
+                                                    <ScaleTransform ScaleX="0.8" ScaleY="0.8" />
+                                                </PathIcon.RenderTransform>
+                                            </PathIcon>
+                            </StackPanel>
+                        </Button>
+                    </Grid>
+
+                    <Border Grid.Row="3"
+                            x:Name="NewChatInputFrame"
+                            Classes="InputFrame"
+                            IsVisible="{Binding IsNewChatInputVisible}"
+                            Margin="14,0,14,12"
+                            Padding="10,2"
+                            Background="{DynamicResource AppBgBrush}"
+                            BorderBrush="{DynamicResource MagicBorderBrush}"
+                            BorderThickness="1"
+                            CornerRadius="10">
+                        <TextBox Background="Transparent"
+                                 x:Name="NewChatInput"
+                                 FocusAdorner="{x:Null}"
+                                 BorderThickness="0"
+                                 CornerRadius="9"
+                                 Padding="0"
+                                 VerticalContentAlignment="Center"
+                                 GotFocus="OnInputGotFocus"
+                                 LostFocus="OnInputLostFocus"
+                                 MaxLength="32"
+                                 PlaceholderText="Username for new chat"
+                                 Text="{Binding NewChatUsername}" />
+                    </Border>
+
                     <!-- Список відфільтрованих чатів; вибраний елемент визначає відкриту переписку. -->
-                    <ListBox Grid.Row="1"
+                    <ListBox Grid.Row="4"
                              Background="Transparent"
-                             ItemsSource="{Binding Conversations}"
+                             ItemsSource="{Binding FilteredConversations}"
                              SelectedItem="{Binding SelectedConversation, Mode=TwoWay}">
                         <!-- Шаблон одного чату: ініціали, ім'я, останнє повідомлення та час. -->
                         <ListBox.ItemTemplate>
@@ -243,16 +459,12 @@
                     </Grid>
                 </Border>
 
-                <StackPanel Grid.Row="1" Orientation="Horizontal" Spacing="8" Margin="12,8">
-                    <TextBox Width="190" PlaceholderText="Username for new chat" Text="{Binding NewChatUsername}" />
-                    <Button Content="New Chat" Command="{Binding CreateChatCommand}" />
-                    <Button Content="Refresh" Command="{Binding RefreshConversationsCommand}" />
-                </StackPanel>
-
                 <!-- Історія повідомлень прокручується; вирівнювання кожного повідомлення задається моделлю. -->
                 <ScrollViewer Grid.Row="2" Padding="18">
                     <StackPanel Spacing="8">
-                        <Button Content="Load older messages"
+                        <Button
+                                Content="Load older messages"
+                                Background="Transparent"
                                 Command="{Binding LoadOlderMessagesCommand}"
                                 HorizontalAlignment="Center" />
                     <ItemsControl ItemsSource="{Binding Messages}">
@@ -265,6 +477,22 @@
                                         CornerRadius="12"
                                         Background="{DynamicResource PanelBgBrush}"
                                         HorizontalAlignment="Left">
+                                    <Border.ContextMenu>
+                                        <ContextMenu Background="#E61D1530"
+                                                     BorderBrush="{DynamicResource MagicBorderBrush}"
+                                                     BorderThickness="1"
+                                                     CornerRadius="10"
+                                                     Padding="4">
+                                            <MenuItem Header="Edit"
+                                                      IsVisible="{Binding IsOwnMessage}"
+                                                      Command="{Binding #MainRoot.DataContext.EditMessageCommand}"
+                                                      CommandParameter="{Binding}" />
+                                            <MenuItem Header="Delete"
+                                                      IsVisible="{Binding IsOwnMessage}"
+                                                      Command="{Binding #MainRoot.DataContext.DeleteMessageCommand}"
+                                                      CommandParameter="{Binding}" />
+                                        </ContextMenu>
+                                    </Border.ContextMenu>
                                     <StackPanel Spacing="4">
                                         <TextBlock Text="{Binding Content}" TextWrapping="Wrap" />
                                         <TextBlock Text="{Binding CreatedAtUtc}"
@@ -286,14 +514,30 @@
                         BorderThickness="0,1,0,0"
                         Padding="12">
                     <Grid ColumnDefinitions="*,Auto">
-                        <TextBox Grid.Column="0"
-                                 PlaceholderText="Type a message..."
-                                 VerticalContentAlignment="Center"
-                                 Text="{Binding MessageText, UpdateSourceTrigger=PropertyChanged}">
-                            <TextBox.KeyBindings>
-                                <KeyBinding Gesture="Enter" Command="{Binding SendMessageCommand}" />
-                            </TextBox.KeyBindings>
-                        </TextBox>
+                        <Border Grid.Column="0"
+                                x:Name="MessageInputFrame"
+                                Classes="InputFrame"
+                                Padding="10,2"
+                                Background="{DynamicResource AppBgBrush}"
+                                BorderBrush="{DynamicResource MagicBorderBrush}"
+                                BorderThickness="1"
+                                CornerRadius="10">
+                            <TextBox Background="Transparent"
+                                     x:Name="MessageInput"
+                                     FocusAdorner="{x:Null}"
+                                     BorderThickness="0"
+                                     CornerRadius="9"
+                                     Padding="0"
+                                     PlaceholderText="Type a message..."
+                                     VerticalContentAlignment="Center"
+                                     GotFocus="OnInputGotFocus"
+                                     LostFocus="OnInputLostFocus"
+                                     Text="{Binding MessageText, UpdateSourceTrigger=PropertyChanged}">
+                                <TextBox.KeyBindings>
+                                    <KeyBinding Gesture="Enter" Command="{Binding SendMessageCommand}" />
+                                </TextBox.KeyBindings>
+                            </TextBox>
+                        </Border>
                         <Button Grid.Column="1"
                                 Margin="10,0,0,0"
                                 Padding="18,8"

@@ -4,6 +4,7 @@ using Avalonia.Input;
 using Avalonia.Interactivity;
 using Avalonia.Media;
 using Avalonia.Threading;
+using Avalonia.VisualTree;
 using System.Diagnostics;
 using UChat.App.ViewModels;
 
@@ -121,6 +122,33 @@ public partial class MainWindow : Window
     private void OnCloseClick(object? sender, RoutedEventArgs e)
     {
         Close();
+    }
+
+    private void OnInputGotFocus(object? sender, RoutedEventArgs e)
+    {
+        SetInputFrameFocus(sender, true);
+    }
+
+    private void OnInputLostFocus(object? sender, RoutedEventArgs e)
+    {
+        SetInputFrameFocus(sender, false);
+    }
+
+    private static void SetInputFrameFocus(object? sender, bool isFocused)
+    {
+        if (sender is not Control input)
+        {
+            return;
+        }
+
+        for (var ancestor = input.GetVisualParent(); ancestor is not null; ancestor = ancestor.GetVisualParent())
+        {
+            if (ancestor is Border frame && frame.Classes.Contains("InputFrame"))
+            {
+                frame.Classes.Set("focused", isFocused);
+                return;
+            }
+        }
     }
 
     private void OnTitleBarPointerPressed(object? sender, PointerPressedEventArgs e)

@@ -22,17 +22,31 @@ public partial class MainViewModel : ObservableObject, IAsyncDisposable
     private int _conversationVersion;
 
     public ObservableCollection<ChatConversation> Conversations { get; } = new();
+    public ObservableCollection<ChatConversation> FilteredConversations { get; } = new();
     public ObservableCollection<ChatMessage> Messages { get; } = new();
+
+    [ObservableProperty]
+    private string searchText = "";
 
     [ObservableProperty]
     [NotifyCanExecuteChangedFor(nameof(LoadOlderMessagesCommand))]
     private ChatConversation? selectedConversation;
 
     [ObservableProperty]
+    [NotifyCanExecuteChangedFor(nameof(CreateChatCommand))]
     private string newChatUsername = "";
 
     [ObservableProperty]
+    private bool isNewChatInputVisible;
+
+    [ObservableProperty]
     private string messageText = "";
+
+    [ObservableProperty]
+    private ChatMessage? editingMessage;
+
+    [ObservableProperty]
+    private bool isEditingMessage;
 
     [ObservableProperty]
     private string status = "Connecting...";
@@ -80,6 +94,8 @@ public partial class MainViewModel : ObservableObject, IAsyncDisposable
 
             foreach (var conversation in conversations)
                 Conversations.Add(conversation);
+
+            ApplyConversationFilter();
         }
         catch (Exception ex)
         {
@@ -87,7 +103,33 @@ public partial class MainViewModel : ObservableObject, IAsyncDisposable
         }
     }
 
+    partial void OnSearchTextChanged(string value)
+    {
+        ApplyConversationFilter();
+    }
+
+    private void ApplyConversationFilter()
+    {
+        var query = SearchText.Trim();
+        var matches = Conversations
+            .Where(conversation =>
+                query.Length == 0
+                || conversation.DisplayName.Contains(query, StringComparison.OrdinalIgnoreCase)
+                || (conversation.TargetUsername?.Contains(query, StringComparison.OrdinalIgnoreCase) ?? false))
+            .ToList();
+
+        FilteredConversations.Clear();
+        foreach (var conversation in matches)
+            FilteredConversations.Add(conversation);
+    }
+
     [RelayCommand]
+    private void ToggleNewChatInput()
+    {
+        IsNewChatInputVisible = !IsNewChatInputVisible;
+    }
+
+    [RelayCommand(CanExecute = nameof(CanCreateChat))]
     private async Task CreateChatAsync()
     {
         var username = NewChatUsername.Trim();
@@ -103,6 +145,7 @@ public partial class MainViewModel : ObservableObject, IAsyncDisposable
             await RefreshConversationsAsync();
 
             NewChatUsername = "";
+            IsNewChatInputVisible = false;
 
             SelectedConversation = Conversations.FirstOrDefault(
                 c => c.ConversationId == conversation.ConversationId);
@@ -111,6 +154,11 @@ public partial class MainViewModel : ObservableObject, IAsyncDisposable
         {
             Status = $"Create chat error: {ex.Message}";
         }
+    }
+
+    private bool CanCreateChat()
+    {
+        return !string.IsNullOrWhiteSpace(NewChatUsername);
     }
 
     partial void OnSelectedConversationChanged(ChatConversation? value)
@@ -246,6 +294,17 @@ public partial class MainViewModel : ObservableObject, IAsyncDisposable
 
         try
         {
+            if (EditingMessage is not null)
+            {
+                await _signalR.EditMessageAsync(
+                    conversation.ConversationId,
+                    EditingMessage.MessageId,
+                    content);
+
+                CancelEdit();
+                return;
+            }
+
             await _signalR.SendMessageAsync(
                 conversation.ConversationId,
                 content);
@@ -255,6 +314,44 @@ public partial class MainViewModel : ObservableObject, IAsyncDisposable
         catch (Exception ex)
         {
             Status = $"Send error: {ex.Message}";
+        }
+    }
+
+    [RelayCommand]
+    private void EditMessage(ChatMessage message)
+    {
+        if (!message.IsOwnMessage)
+            return;
+
+        EditingMessage = message;
+        IsEditingMessage = true;
+        MessageText = message.Content;
+    }
+
+    [RelayCommand]
+    private void CancelEdit()
+    {
+        EditingMessage = null;
+        IsEditingMessage = false;
+        MessageText = "";
+    }
+
+    [RelayCommand]
+    private async Task DeleteMessageAsync(ChatMessage message)
+    {
+        var conversation = SelectedConversation;
+        if (conversation is null || !message.IsOwnMessage)
+            return;
+
+        try
+        {
+            await _signalR.DeleteMessageAsync(
+                conversation.ConversationId,
+                message.MessageId);
+        }
+        catch (Exception ex)
+        {
+            Status = $"Delete error: {ex.Message}";
         }
     }
 
@@ -276,6 +373,12 @@ public partial class MainViewModel : ObservableObject, IAsyncDisposable
                 var existing = Messages.FirstOrDefault(m => m.MessageId == message.MessageId);
                 if (existing is not null)
                 {
+                    message.IsOwnMessage =
+                        string.Equals(
+                            message.SenderAccountId,
+                            AuthSession.AccountId,
+                            StringComparison.Ordinal);
+
                     var index = Messages.IndexOf(existing);
                     Messages[index] = message;
                 }
@@ -303,6 +406,12 @@ public partial class MainViewModel : ObservableObject, IAsyncDisposable
     {
         if (Messages.Any(m => m.MessageId == message.MessageId))
             return;
+
+        message.IsOwnMessage =
+            string.Equals(
+                message.SenderAccountId,
+                AuthSession.AccountId,
+                StringComparison.Ordinal);
 
         Messages.Add(message);
 
