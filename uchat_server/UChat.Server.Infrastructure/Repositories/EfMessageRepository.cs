@@ -21,29 +21,35 @@ public sealed class EfMessageRepository : IMessageRepository
         try
         {
             _context.Messages.Add(message);
+
             await _context.SaveChangesAsync(cancellationToken);
+
             return true;
         }
-        catch (DbUpdateException) when (!string.IsNullOrWhiteSpace(message.ClientMessageId))
+        catch (DbUpdateException)
+            when (!string.IsNullOrWhiteSpace(message.ClientMessageId))
         {
-            // Detach duplicate entity so context state remains valid
             _context.Entry(message).State = EntityState.Detached;
+
             return false;
         }
     }
 
-    public async Task<IReadOnlyList<Message>> GetByConversationIdAsync(
-        Guid conversationId,
-        int limit = 50,
-        DateTime? beforeUtc = null,
-        DateTime? afterUtc = null,
-        CancellationToken cancellationToken = default)
+    public async Task<IReadOnlyList<Message>>
+        GetByConversationIdAsync(
+            Guid conversationId,
+            int limit = 50,
+            DateTime? beforeUtc = null,
+            DateTime? afterUtc = null,
+            CancellationToken cancellationToken = default)
     {
         var query = _context.Messages
             .AsNoTracking()
-            .Where(m => m.ConversationId == conversationId && !m.IsDeleted);
+            .Include(m => m.Sender)
+            .Where(m =>
+                m.ConversationId == conversationId
+                && !m.IsDeleted);
 
-        // If afterUtc is provided (reconnect catch-up): fetch new messages since that timestamp
         if (afterUtc.HasValue)
         {
             return await query
@@ -53,19 +59,19 @@ public sealed class EfMessageRepository : IMessageRepository
                 .ToListAsync(cancellationToken);
         }
 
-        // If beforeUtc is provided (history pagination): fetch older messages
         if (beforeUtc.HasValue)
         {
-            query = query.Where(m => m.CreatedAtUtc < beforeUtc.Value);
+            query = query.Where(
+                m => m.CreatedAtUtc < beforeUtc.Value);
         }
 
-        // Fetch latest messages and reverse back to chronological order for chat rendering
         var items = await query
             .OrderByDescending(m => m.CreatedAtUtc)
             .Take(limit)
             .ToListAsync(cancellationToken);
 
         items.Reverse();
+
         return items;
     }
 
@@ -81,6 +87,11 @@ public sealed class EfMessageRepository : IMessageRepository
 
         return _context.Messages
             .FirstOrDefaultAsync(m => m.MessageId == messageId, cancellationToken);
+            .AsNoTracking()
+            .Include(m => m.Sender)
+            .FirstOrDefaultAsync(
+                m => m.MessageId == messageId,
+                cancellationToken);
     }
 
     public Task<Message?> GetByClientMessageIdAsync(
@@ -96,10 +107,11 @@ public sealed class EfMessageRepository : IMessageRepository
 
         return _context.Messages
             .AsNoTracking()
+            .Include(m => m.Sender)
             .FirstOrDefaultAsync(
-                m => m.ConversationId == conversationId &&
-                     m.SenderAccountId == senderAccountId &&
-                     m.ClientMessageId == clientMessageId,
+                m => m.ConversationId == conversationId
+                     && m.SenderAccountId == senderAccountId
+                     && m.ClientMessageId == clientMessageId,
                 cancellationToken);
     }
 
@@ -117,6 +129,13 @@ public sealed class EfMessageRepository : IMessageRepository
         {
             _context.Messages.Update(message);
         }
+        var entry = _context.Entry(message);
+
+        entry.State = EntityState.Unchanged;
+
+        entry.Property(m => m.Content).IsModified = true;
+        entry.Property(m => m.EditedAtUtc).IsModified = true;
+        entry.Property(m => m.IsDeleted).IsModified = true;
 
         await _context.SaveChangesAsync(cancellationToken);
     }

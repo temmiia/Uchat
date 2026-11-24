@@ -93,7 +93,11 @@ public sealed class MessageService
             }
         }
 
-        return (ToResponse(message), false);
+        var savedMessage = await _messageRepository.GetByIdAsync(
+    message.MessageId,
+    cancellationToken);
+
+        return (ToResponse(savedMessage ?? message), false);
     }
 
     public async Task<IReadOnlyList<MessageResponse>> GetMessagesAsync(
@@ -183,6 +187,48 @@ public sealed class MessageService
         await _messageRepository.UpdateAsync(message, cancellationToken);
 
         return ToResponse(message);
+    public async Task<Message> EditMessageAsync(
+    Guid conversationId,
+    Guid messageId,
+    string accountId,
+    string content,
+    CancellationToken cancellationToken = default)
+    {
+        if (string.IsNullOrWhiteSpace(content))
+        {
+            throw new ArgumentException("Message cannot be empty.");
+        }
+
+        if (content.Length > 4000)
+        {
+            throw new ArgumentException(
+                "Message cannot exceed 4000 characters.");
+        }
+
+        var message = await _messageRepository.GetByIdAsync(
+            messageId,
+            cancellationToken);
+
+        if (message is null ||
+            message.ConversationId != conversationId ||
+            message.IsDeleted)
+        {
+            throw new KeyNotFoundException("Message not found.");
+        }
+
+        if (message.SenderAccountId != accountId)
+        {
+            throw new UnauthorizedAccessException(
+                "You can only edit your own messages.");
+        }
+
+        message.EditContent(content);
+
+        await _messageRepository.UpdateAsync(
+            message,
+            cancellationToken);
+
+        return message;
     }
 
     public async Task DeleteMessageAsync(
@@ -215,6 +261,23 @@ public sealed class MessageService
         if (message.SenderAccountId != requesterAccountId)
         {
             throw new UnauthorizedAccessException("You can only delete your own messages.");
+        string accountId,
+        CancellationToken cancellationToken = default)
+    {
+        var message = await _messageRepository.GetByIdAsync(
+            messageId,
+            cancellationToken);
+
+        if (message is null ||
+            message.ConversationId != conversationId)
+        {
+            throw new KeyNotFoundException("Message not found.");
+        }
+
+        if (message.SenderAccountId != accountId)
+        {
+            throw new UnauthorizedAccessException(
+                "You can only delete your own messages.");
         }
 
         if (message.IsDeleted)
@@ -224,6 +287,10 @@ public sealed class MessageService
 
         message.MarkAsDeleted();
         await _messageRepository.UpdateAsync(message, cancellationToken);
+
+        await _messageRepository.UpdateAsync(
+            message,
+            cancellationToken);
     }
 
     private static MessageResponse ToResponse(Message m) =>
@@ -235,5 +302,6 @@ public sealed class MessageService
             m.CreatedAtUtc,
             m.EditedAtUtc,
             m.ClientMessageId,
-            m.ServerReceivedAtUtc);
+            m.ServerReceivedAtUtc,
+            m.Sender?.DisplayName);
 }

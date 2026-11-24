@@ -80,7 +80,19 @@ public partial class MainWindow : Window
     public MainWindow()
     {
         InitializeComponent();
-        DataContext = new MainViewModel();
+
+        var viewModel = new MainViewModel();
+        DataContext = viewModel;
+
+        Opened += async (_, _) =>
+        {
+            await viewModel.InitializeAsync();
+        };
+
+        Closed += async (_, _) =>
+        {
+            await viewModel.DisposeAsync();
+        };
         LeftPupil.RenderTransform = _leftPupilOffset;
         RightPupil.RenderTransform = _rightPupilOffset;
 
@@ -105,6 +117,31 @@ public partial class MainWindow : Window
         _mascotAnimation.Tick += OnMascotAnimationTick;
         _mascotAnimation.Start();
         Closed += (_, _) => _mascotAnimation.Stop();
+    }
+
+    private void OnEditMessageClick(
+    object? sender,
+    Avalonia.Interactivity.RoutedEventArgs e)
+    {
+        if (DataContext is UChat.App.ViewModels.MainViewModel vm &&
+            sender is Avalonia.Controls.MenuItem item &&
+            item.CommandParameter is UChat.App.Models.ChatMessage message)
+        {
+            vm.StartEditCommand.Execute(message);
+        }
+    }
+
+    private async void OnDeleteMessageClick(
+        object? sender,
+        Avalonia.Interactivity.RoutedEventArgs e)
+    {
+        if (DataContext is UChat.App.ViewModels.MainViewModel vm &&
+            sender is Avalonia.Controls.MenuItem item &&
+            item.CommandParameter is UChat.App.Models.ChatMessage message &&
+            vm.DeleteMessageCommand.CanExecute(message))
+        {
+            await vm.DeleteMessageCommand.ExecuteAsync(message);
+        }
     }
 
     private void OnMinimizeClick(object? sender, RoutedEventArgs e)

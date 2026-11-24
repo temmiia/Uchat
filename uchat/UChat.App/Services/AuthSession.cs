@@ -1,3 +1,5 @@
+using System;
+using System.Text.Json;
 
 using System;
 
@@ -6,6 +8,8 @@ namespace UChat.App.Services;
 public static class AuthSession
 {
     public static string? AccessToken { get; private set; }
+    public static string? AccountId { get; private set; }
+
     public static string? AccountId { get; private set; }
 
     public static bool IsAuthenticated =>
@@ -42,6 +46,28 @@ public static class AuthSession
             return document.RootElement.TryGetProperty("sub", out var sub)
                 ? sub.GetString()
                 : null;
+            var payload = token.Split('.')[1]
+                .Replace('-', '+')
+                .Replace('_', '/');
+
+            payload = payload.PadRight(
+                (payload.Length + 3) / 4 * 4, '=');
+
+            var bytes = Convert.FromBase64String(payload);
+
+            using var document = JsonDocument.Parse(bytes);
+
+            if (document.RootElement.TryGetProperty("sub", out var sub))
+                return sub.GetString();
+
+            if (document.RootElement.TryGetProperty(
+                "http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier",
+                out var nameId))
+            {
+                return nameId.GetString();
+            }
+
+            return null;
         }
         catch
         {
