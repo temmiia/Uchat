@@ -131,6 +131,84 @@ public sealed class MessageService
         return message is null ? null : ToResponse(message);
     }
 
+    public async Task<Message> EditMessageAsync(
+    Guid conversationId,
+    Guid messageId,
+    string accountId,
+    string content,
+    CancellationToken cancellationToken = default)
+    {
+        if (string.IsNullOrWhiteSpace(content))
+        {
+            throw new ArgumentException("Message cannot be empty.");
+        }
+
+        if (content.Length > 4000)
+        {
+            throw new ArgumentException(
+                "Message cannot exceed 4000 characters.");
+        }
+
+        var message = await _messageRepository.GetByIdAsync(
+            messageId,
+            cancellationToken);
+
+        if (message is null ||
+            message.ConversationId != conversationId ||
+            message.IsDeleted)
+        {
+            throw new KeyNotFoundException("Message not found.");
+        }
+
+        if (message.SenderAccountId != accountId)
+        {
+            throw new UnauthorizedAccessException(
+                "You can only edit your own messages.");
+        }
+
+        message.EditContent(content);
+
+        await _messageRepository.UpdateAsync(
+            message,
+            cancellationToken);
+
+        return message;
+    }
+
+    public async Task DeleteMessageAsync(
+        Guid conversationId,
+        Guid messageId,
+        string accountId,
+        CancellationToken cancellationToken = default)
+    {
+        var message = await _messageRepository.GetByIdAsync(
+            messageId,
+            cancellationToken);
+
+        if (message is null ||
+            message.ConversationId != conversationId)
+        {
+            throw new KeyNotFoundException("Message not found.");
+        }
+
+        if (message.SenderAccountId != accountId)
+        {
+            throw new UnauthorizedAccessException(
+                "You can only delete your own messages.");
+        }
+
+        if (message.IsDeleted)
+        {
+            return;
+        }
+
+        message.MarkAsDeleted();
+
+        await _messageRepository.UpdateAsync(
+            message,
+            cancellationToken);
+    }
+
     private static MessageResponse ToResponse(Message m) =>
         new(
             m.MessageId,
