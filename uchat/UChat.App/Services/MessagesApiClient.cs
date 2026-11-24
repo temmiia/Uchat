@@ -46,6 +46,24 @@ public sealed class MessagesApiClient
             .ReadFromJsonAsync<List<ChatMessage>>() ?? new();
     }
 
+    public async Task<ChatMessage?> EditMessageAsync(
+        Guid conversationId,
+        Guid messageId,
+        string newContent)
+    {
+        var url = $"api/conversations/{conversationId:D}/messages/{messageId:D}";
+        using var request = new HttpRequestMessage(HttpMethod.Put, url)
+        {
+            Content = JsonContent.Create(new { Content = newContent })
+        };
+
+        request.Headers.Authorization =
+            new AuthenticationHeaderValue("Bearer", AuthSession.AccessToken);
+
+        using var response = await Http.SendAsync(request);
+        response.EnsureSuccessStatusCode();
+
+        return await response.Content.ReadFromJsonAsync<ChatMessage>();
     public async Task EditMessageAsync(
         Guid conversationId,
         Guid messageId,
@@ -71,6 +89,13 @@ public sealed class MessagesApiClient
         Guid conversationId,
         Guid messageId)
     {
+        var url = $"api/conversations/{conversationId:D}/messages/{messageId:D}";
+        using var request = new HttpRequestMessage(HttpMethod.Delete, url);
+
+        request.Headers.Authorization =
+            new AuthenticationHeaderValue("Bearer", AuthSession.AccessToken);
+
+        using var response = await Http.SendAsync(request);
         var url =
             $"api/conversations/{conversationId:D}/messages/{messageId:D}";
 

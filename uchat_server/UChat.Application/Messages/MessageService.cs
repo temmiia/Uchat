@@ -135,6 +135,58 @@ public sealed class MessageService
         return message is null ? null : ToResponse(message);
     }
 
+    public async Task<MessageResponse> EditMessageAsync(
+        Guid conversationId,
+        Guid messageId,
+        string editorAccountId,
+        string newContent,
+        CancellationToken cancellationToken = default)
+    {
+        if (conversationId == Guid.Empty)
+        {
+            throw new ArgumentException("Invalid conversation ID.", nameof(conversationId));
+        }
+
+        if (messageId == Guid.Empty)
+        {
+            throw new ArgumentException("Invalid message ID.", nameof(messageId));
+        }
+
+        if (string.IsNullOrWhiteSpace(editorAccountId))
+        {
+            throw new ArgumentException("Editor account ID is required.", nameof(editorAccountId));
+        }
+
+        if (string.IsNullOrWhiteSpace(newContent))
+        {
+            throw new ArgumentException("Message content cannot be empty.", nameof(newContent));
+        }
+
+        if (newContent.Length > 4000)
+        {
+            throw new ArgumentException("Message cannot exceed 4000 characters.", nameof(newContent));
+        }
+
+        var message = await _messageRepository.GetByIdAsync(messageId, cancellationToken);
+        if (message is null || message.ConversationId != conversationId)
+        {
+            throw new KeyNotFoundException("Message was not found in this conversation.");
+        }
+
+        if (message.IsDeleted)
+        {
+            throw new InvalidOperationException("Cannot edit a deleted message.");
+        }
+
+        if (message.SenderAccountId != editorAccountId)
+        {
+            throw new UnauthorizedAccessException("You can only edit your own messages.");
+        }
+
+        message.EditContent(newContent);
+        await _messageRepository.UpdateAsync(message, cancellationToken);
+
+        return ToResponse(message);
     public async Task<Message> EditMessageAsync(
     Guid conversationId,
     Guid messageId,
@@ -182,6 +234,33 @@ public sealed class MessageService
     public async Task DeleteMessageAsync(
         Guid conversationId,
         Guid messageId,
+        string requesterAccountId,
+        CancellationToken cancellationToken = default)
+    {
+        if (conversationId == Guid.Empty)
+        {
+            throw new ArgumentException("Invalid conversation ID.", nameof(conversationId));
+        }
+
+        if (messageId == Guid.Empty)
+        {
+            throw new ArgumentException("Invalid message ID.", nameof(messageId));
+        }
+
+        if (string.IsNullOrWhiteSpace(requesterAccountId))
+        {
+            throw new ArgumentException("Requester account ID is required.", nameof(requesterAccountId));
+        }
+
+        var message = await _messageRepository.GetByIdAsync(messageId, cancellationToken);
+        if (message is null || message.ConversationId != conversationId)
+        {
+            throw new KeyNotFoundException("Message was not found in this conversation.");
+        }
+
+        if (message.SenderAccountId != requesterAccountId)
+        {
+            throw new UnauthorizedAccessException("You can only delete your own messages.");
         string accountId,
         CancellationToken cancellationToken = default)
     {
@@ -207,6 +286,7 @@ public sealed class MessageService
         }
 
         message.MarkAsDeleted();
+        await _messageRepository.UpdateAsync(message, cancellationToken);
 
         await _messageRepository.UpdateAsync(
             message,

@@ -121,6 +121,8 @@ public sealed class MessagesController : ControllerBase
         }
     }
 
+    [HttpPut("{messageId:guid}")]
+    public async Task<ActionResult<MessageResponse>> EditMessage(
     [HttpPatch("{messageId:guid}")]
     public async Task<IActionResult> EditMessage(
         [FromRoute] Guid conversationId,
@@ -135,6 +137,8 @@ public sealed class MessagesController : ControllerBase
             return Unauthorized();
         }
 
+        var isMember = await CheckMembershipAsync(conversationId, accountId, cancellationToken);
+        if (!isMember)
         if (!await CheckMembershipAsync(
             conversationId, accountId, cancellationToken))
         {
@@ -143,6 +147,7 @@ public sealed class MessagesController : ControllerBase
 
         try
         {
+            var response = await _messageService.EditMessageAsync(
             var message = await _messageService.EditMessageAsync(
                 conversationId,
                 messageId,
@@ -150,6 +155,20 @@ public sealed class MessagesController : ControllerBase
                 request.Content,
                 cancellationToken);
 
+            var messageEntity = await _dbContext.Messages
+                .AsNoTracking()
+                .FirstOrDefaultAsync(m => m.MessageId == response.MessageId, cancellationToken);
+
+            if (messageEntity is not null)
+            {
+                await _eventPublisher.PublishMessageEditedAsync(messageEntity, cancellationToken);
+            }
+
+            return Ok(response);
+        }
+        catch (ArgumentException ex)
+        {
+            return BadRequest(new { error = ex.Message });
             await _eventPublisher.PublishMessageEditedAsync(
                 message,
                 cancellationToken);
@@ -164,6 +183,11 @@ public sealed class MessagesController : ControllerBase
         {
             return Forbid();
         }
+        catch (KeyNotFoundException ex)
+        {
+            return NotFound(new { error = ex.Message });
+        }
+        catch (InvalidOperationException ex)
         catch (ArgumentException ex)
         {
             return BadRequest(new { error = ex.Message });
@@ -183,6 +207,8 @@ public sealed class MessagesController : ControllerBase
             return Unauthorized();
         }
 
+        var isMember = await CheckMembershipAsync(conversationId, accountId, cancellationToken);
+        if (!isMember)
         if (!await CheckMembershipAsync(
             conversationId, accountId, cancellationToken))
         {
@@ -197,6 +223,13 @@ public sealed class MessagesController : ControllerBase
                 accountId,
                 cancellationToken);
 
+            await _eventPublisher.PublishMessageDeletedAsync(conversationId, messageId, cancellationToken);
+
+            return NoContent();
+        }
+        catch (ArgumentException ex)
+        {
+            return BadRequest(new { error = ex.Message });
             await _eventPublisher.PublishMessageDeletedAsync(
                 conversationId,
                 messageId,
@@ -211,6 +244,14 @@ public sealed class MessagesController : ControllerBase
         catch (UnauthorizedAccessException)
         {
             return Forbid();
+        }
+        catch (KeyNotFoundException ex)
+        {
+            return NotFound(new { error = ex.Message });
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(new { error = ex.Message });
         }
     }
 
