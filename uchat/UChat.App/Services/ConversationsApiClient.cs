@@ -1,9 +1,9 @@
-
 using System;
 using System.Collections.Generic;
 using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
+using System.Text.Json;
 using System.Threading.Tasks;
 using UChat.App.Models;
 
@@ -16,31 +16,116 @@ public sealed class ConversationsApiClient
         BaseAddress = new Uri("http://localhost:5049/")
     };
 
-    private static void SetAuthorization()
+    private static HttpRequestMessage CreateRequest(
+        HttpMethod method,
+        string url)
     {
-        Http.DefaultRequestHeaders.Authorization =
-            new AuthenticationHeaderValue("Bearer", AuthSession.AccessToken);
+        var request = new HttpRequestMessage(method, url);
+
+        request.Headers.Authorization =
+            new AuthenticationHeaderValue(
+                "Bearer",
+                AuthSession.AccessToken);
+
+        return request;
     }
 
-    public async Task<List<ChatConversation>> GetConversationsAsync()
+    public async Task<List<ChatConversation>>
+        GetConversationsAsync()
     {
-        SetAuthorization();
+        using var request = CreateRequest(
+            HttpMethod.Get,
+            "api/conversations");
 
-        return await Http.GetFromJsonAsync<List<ChatConversation>>(
-            "api/conversations") ?? new();
+        using var response = await Http.SendAsync(request);
+
+        await EnsureSuccessAsync(response);
+
+        return await response.Content
+            .ReadFromJsonAsync<List<ChatConversation>>()
+            ?? new();
     }
 
-    public async Task<ChatConversation> CreateDirectAsync(string username)
+    public async Task<ChatConversation> CreateDirectAsync(
+        string username)
     {
-        SetAuthorization();
+        using var request = CreateRequest(
+            HttpMethod.Post,
+            "api/conversations/direct");
 
-        using var response = await Http.PostAsJsonAsync(
-            "api/conversations/direct",
-            new { TargetUsername = username });
+        request.Content = JsonContent.Create(new
+        {
+            TargetUsername = username
+        });
 
-        response.EnsureSuccessStatusCode();
+        using var response = await Http.SendAsync(request);
 
-        return await response.Content.ReadFromJsonAsync<ChatConversation>()
-            ?? throw new InvalidOperationException("Empty API response.");
+        await EnsureSuccessAsync(response);
+
+        return await response.Content
+            .ReadFromJsonAsync<ChatConversation>()
+            ?? throw new InvalidOperationException(
+                "Empty API response.");
+    }
+
+    public async Task<ChatConversation> CreateGroupAsync(
+        string title,
+        string[] memberUsernames)
+    {
+        using var request = CreateRequest(
+            HttpMethod.Post,
+            "api/conversations/group");
+
+        request.Content = JsonContent.Create(new
+        {
+            Title = title,
+            MemberUsernames = memberUsernames
+        });
+
+        using var response = await Http.SendAsync(request);
+
+        await EnsureSuccessAsync(response);
+
+        return await response.Content
+            .ReadFromJsonAsync<ChatConversation>()
+            ?? throw new InvalidOperationException(
+                "Empty API response.");
+    }
+
+    private static async Task EnsureSuccessAsync(
+        HttpResponseMessage response)
+    {
+        if (response.IsSuccessStatusCode)
+            return;
+
+        var body = await response.Content.ReadAsStringAsync();
+
+        var error = $"Request failed: {(int)response.StatusCode}";
+
+        try
+        {
+            using var document = JsonDocument.Parse(body);
+
+            var root = document.RootElement;
+
+            if (root.TryGetProperty("error", out var property))
+            {
+                error = property.GetString() ?? error;
+            }
+
+            if (root.TryGetProperty("usernames", out var usernames))
+            {
+                var missing = usernames.Deserialize<string[]>();
+
+                if (missing is { Length: > 0 })
+                    error += " " + string.Join(", ", missing);
+            }
+        }
+        catch (JsonException)
+        {
+            // Keep the default HTTP error.
+        }
+
+        throw new InvalidOperationException(error);
     }
 }

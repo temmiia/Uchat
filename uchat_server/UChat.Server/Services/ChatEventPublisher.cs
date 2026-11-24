@@ -14,58 +14,38 @@ public sealed class ChatEventPublisher
         _hubContext = hubContext;
     }
 
-    public async Task PublishMessageCreatedAsync(
+    public Task PublishMessageCreatedAsync(
         Message message,
         CancellationToken cancellationToken = default)
     {
-        await _hubContext.Clients
+        return _hubContext.Clients
             .Group(ChatHub.GetConversationGroup(
                 message.ConversationId))
             .SendAsync(
                 "MessageCreated",
-                new
-                {
-                    message.MessageId,
-                    message.ConversationId,
-                    message.SenderAccountId,
-                    message.Content,
-                    message.CreatedAtUtc,
-                    message.EditedAtUtc,
-                    message.ServerReceivedAtUtc,
-                    message.ClientMessageId
-                },
+                CreateMessagePayload(message),
                 cancellationToken);
     }
 
-    public async Task PublishMessageEditedAsync(
+    public Task PublishMessageEditedAsync(
         Message message,
         CancellationToken cancellationToken = default)
     {
-        await _hubContext.Clients
+        return _hubContext.Clients
             .Group(ChatHub.GetConversationGroup(
                 message.ConversationId))
             .SendAsync(
                 "MessageEdited",
-                new
-                {
-                    message.MessageId,
-                    message.ConversationId,
-                    message.SenderAccountId,
-                    message.Content,
-                    message.CreatedAtUtc,
-                    message.EditedAtUtc,
-                    message.ServerReceivedAtUtc,
-                    message.ClientMessageId
-                },
+                CreateMessagePayload(message),
                 cancellationToken);
     }
 
-    public async Task PublishMessageDeletedAsync(
+    public Task PublishMessageDeletedAsync(
         Guid conversationId,
         Guid messageId,
         CancellationToken cancellationToken = default)
     {
-        await _hubContext.Clients
+        return _hubContext.Clients
             .Group(ChatHub.GetConversationGroup(
                 conversationId))
             .SendAsync(
@@ -101,5 +81,24 @@ public sealed class ChatEventPublisher
                 "ConversationCreated",
                 conversationId,
                 cancellationToken);
+    }
+
+    private static object CreateMessagePayload(
+        Message message)
+    {
+        return new
+        {
+            message.MessageId,
+            message.ConversationId,
+            message.SenderAccountId,
+
+            SenderDisplayName = message.Sender?.DisplayName,
+
+            message.Content,
+            message.CreatedAtUtc,
+            message.EditedAtUtc,
+            message.ServerReceivedAtUtc,
+            message.ClientMessageId
+        };
     }
 }

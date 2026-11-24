@@ -34,6 +34,26 @@ public partial class MainViewModel : ObservableObject, IAsyncDisposable
     private string newChatUsername = "";
 
     [ObservableProperty]
+    private bool isGroupDialogOpen;
+
+    [ObservableProperty]
+    private string groupTitle = "";
+
+    [ObservableProperty]
+    private string groupMemberUsername = "";
+
+    [ObservableProperty]
+    private string groupError = "";
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(CanEditGroup))]
+    private bool isCreatingGroup;
+
+    public bool CanEditGroup => !IsCreatingGroup;
+
+    public ObservableCollection<string> GroupMembers { get; } = new();
+
+    [ObservableProperty]
     private string messageText = "";
 
     [ObservableProperty]
@@ -131,6 +151,159 @@ public partial class MainViewModel : ObservableObject, IAsyncDisposable
         catch (Exception ex)
         {
             Status = $"Create chat error: {ex.Message}";
+        }
+    }
+
+    [RelayCommand]
+    private void OpenGroupDialog()
+    {
+        if (IsCreatingGroup)
+            return;
+
+        GroupTitle = "";
+        GroupMemberUsername = "";
+        GroupError = "";
+        GroupMembers.Clear();
+
+        IsGroupDialogOpen = true;
+    }
+
+    [RelayCommand]
+    private void CloseGroupDialog()
+    {
+        if (IsCreatingGroup)
+            return;
+
+        IsGroupDialogOpen = false;
+
+        GroupTitle = "";
+        GroupMemberUsername = "";
+        GroupError = "";
+        GroupMembers.Clear();
+    }
+
+    [RelayCommand]
+    private void AddGroupMember()
+    {
+        if (IsCreatingGroup)
+            return;
+
+        var username = GroupMemberUsername
+            .Trim()
+            .TrimStart('@')
+            .Trim();
+
+        GroupError = "";
+
+        if (string.IsNullOrWhiteSpace(username))
+        {
+            GroupError = "Enter a username.";
+            return;
+        }
+
+        if (GroupMembers.Any(u =>
+            string.Equals(
+                u,
+                username,
+                StringComparison.OrdinalIgnoreCase)))
+        {
+            GroupError = "This user is already added.";
+            return;
+        }
+
+        if (GroupMembers.Count >= 99)
+        {
+            GroupError = "Maximum 99 invited members.";
+            return;
+        }
+
+        GroupMembers.Add(username);
+
+        GroupMemberUsername = "";
+    }
+
+    [RelayCommand]
+    private void RemoveGroupMember(string? username)
+    {
+        if (IsCreatingGroup || username is null)
+            return;
+
+        GroupMembers.Remove(username);
+
+        GroupError = "";
+    }
+
+    [RelayCommand]
+    private async Task CreateGroupAsync()
+    {
+        if (IsCreatingGroup)
+            return;
+
+        GroupError = "";
+
+        var title = GroupTitle.Trim();
+
+        if (string.IsNullOrWhiteSpace(title))
+        {
+            GroupError = "Enter a group name.";
+            return;
+        }
+
+        if (title.Length > 128)
+        {
+            GroupError = "Group name is too long.";
+            return;
+        }
+
+        if (!string.IsNullOrWhiteSpace(GroupMemberUsername))
+        {
+            GroupError = "Press Add to include the entered username.";
+            return;
+        }
+
+        if (GroupMembers.Count == 0)
+        {
+            GroupError = "Add at least one member.";
+            return;
+        }
+
+        IsCreatingGroup = true;
+
+        try
+        {
+            var conversation =
+                await _conversationsApi.CreateGroupAsync(
+                    title,
+                    GroupMembers.ToArray());
+
+            await RefreshConversationsAsync();
+
+            var existing = Conversations.FirstOrDefault(
+                c => c.ConversationId == conversation.ConversationId);
+
+            if (existing is null)
+            {
+                Conversations.Insert(0, conversation);
+                existing = conversation;
+            }
+
+            SelectedConversation = existing;
+
+            IsGroupDialogOpen = false;
+
+            GroupTitle = "";
+            GroupMemberUsername = "";
+            GroupMembers.Clear();
+
+            Status = $"Group created: {conversation.DisplayName}";
+        }
+        catch (Exception ex)
+        {
+            GroupError = ex.Message;
+        }
+        finally
+        {
+            IsCreatingGroup = false;
         }
     }
 
@@ -310,8 +483,35 @@ public partial class MainViewModel : ObservableObject, IAsyncDisposable
 
     private ChatMessage Prepare(ChatMessage message)
     {
-        if (_edits.TryGetValue(message.MessageId, out var edited) && edited.EditedAtUtc >= (message.EditedAtUtc ?? DateTime.MinValue)) message = edited;
-        message.SenderLabel = message.IsOwnMessage ? "You" : SelectedConversation?.Type == "Direct" ? SelectedConversation.DisplayName : message.SenderAccountId;
+        if (_edits.TryGetValue(
+                message.MessageId,
+                out var edited)
+            && edited.EditedAtUtc >=
+                (message.EditedAtUtc ?? DateTime.MinValue))
+        {
+            message = edited;
+        }
+
+        if (message.IsOwnMessage)
+        {
+            message.SenderLabel = "You";
+        }
+        else if (!string.IsNullOrWhiteSpace(
+                     message.SenderDisplayName))
+        {
+            message.SenderLabel =
+                message.SenderDisplayName;
+        }
+        else if (SelectedConversation?.Type == "Direct")
+        {
+            message.SenderLabel =
+                SelectedConversation.DisplayName;
+        }
+        else
+        {
+            message.SenderLabel = message.SenderAccountId;
+        }
+
         return message;
     }
 
