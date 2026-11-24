@@ -13,6 +13,7 @@ public sealed class ChatMessage
     public DateTime CreatedAtUtc { get; set; }
     public DateTime? ServerReceivedAtUtc { get; set; }
     public DateTime? EditedAtUtc { get; set; }
+    public string? SenderDisplayName { get; set; }
     public string? ClientMessageId { get; set; }
     [JsonIgnore]
     public bool IsOwnMessage => !string.IsNullOrWhiteSpace(AuthSession.AccountId)

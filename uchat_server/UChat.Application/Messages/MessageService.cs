@@ -93,7 +93,11 @@ public sealed class MessageService
             }
         }
 
-        return (ToResponse(message), false);
+        var savedMessage = await _messageRepository.GetByIdAsync(
+    message.MessageId,
+    cancellationToken);
+
+        return (ToResponse(savedMessage ?? message), false);
     }
 
     public async Task<IReadOnlyList<MessageResponse>> GetMessagesAsync(
@@ -218,5 +222,6 @@ public sealed class MessageService
             m.CreatedAtUtc,
             m.EditedAtUtc,
             m.ClientMessageId,
-            m.ServerReceivedAtUtc);
+            m.ServerReceivedAtUtc,
+            m.Sender?.DisplayName);
 }

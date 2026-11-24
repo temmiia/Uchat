@@ -145,10 +145,11 @@ public sealed class ChatHub : Hub
             return;
 
         var messageEntity = await _dbContext.Messages
-            .AsNoTracking()
-            .FirstOrDefaultAsync(
-                m => m.MessageId == response.MessageId,
-                Context.ConnectionAborted);
+    .AsNoTracking()
+    .Include(m => m.Sender)
+    .FirstOrDefaultAsync(
+        m => m.MessageId == response.MessageId,
+        Context.ConnectionAborted);
 
         if (messageEntity is null)
             return;

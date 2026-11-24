@@ -96,10 +96,11 @@ public sealed class MessagesController : ControllerBase
             if (!isDuplicate)
             {
                 var messageEntity = await _dbContext.Messages
-                    .AsNoTracking()
-                    .FirstOrDefaultAsync(
-                        m => m.MessageId == response.MessageId,
-                        cancellationToken);
+    .AsNoTracking()
+    .Include(m => m.Sender)
+    .FirstOrDefaultAsync(
+        m => m.MessageId == response.MessageId,
+        cancellationToken);
 
                 if (messageEntity is not null)
                 {
