@@ -8,4 +8,5 @@ public sealed record MessageResponse(
     DateTime CreatedAtUtc,
     DateTime? EditedAtUtc,
     string? ClientMessageId,
-    DateTime? ServerReceivedAtUtc = null);
+    DateTime? ServerReceivedAtUtc = null,
+    string? SenderDisplayName = null);
