@@ -139,6 +139,134 @@ public sealed class ChatHub : Hub
         }
     }
 
+    public async Task EditMessage(
+        Guid conversationId,
+        Guid messageId,
+        string newContent)
+    {
+        var accountId = Context.User?.FindFirst(
+            JwtRegisteredClaimNames.Sub)?.Value;
+
+        if (string.IsNullOrWhiteSpace(accountId))
+        {
+            throw new HubException("Unauthorized.");
+        }
+
+        if (conversationId == Guid.Empty)
+        {
+            throw new HubException("Invalid conversation ID.");
+        }
+
+        var isMember = await _dbContext.Members
+            .AsNoTracking()
+            .AnyAsync(member =>
+                member.ConversationId == conversationId &&
+                member.AccountId == accountId,
+                Context.ConnectionAborted);
+
+        if (!isMember)
+        {
+            throw new HubException("Access denied to this conversation.");
+        }
+
+        try
+        {
+            var response = await _messageService.EditMessageAsync(
+                conversationId,
+                messageId,
+                accountId,
+                newContent,
+                Context.ConnectionAborted);
+
+            var messageEntity = await _dbContext.Messages
+                .AsNoTracking()
+                .FirstOrDefaultAsync(m => m.MessageId == response.MessageId, Context.ConnectionAborted);
+
+            if (messageEntity is not null)
+            {
+                await _eventPublisher.PublishMessageEditedAsync(
+                    messageEntity,
+                    Context.ConnectionAborted);
+            }
+        }
+        catch (ArgumentException ex)
+        {
+            throw new HubException(ex.Message);
+        }
+        catch (InvalidOperationException ex)
+        {
+            throw new HubException(ex.Message);
+        }
+        catch (UnauthorizedAccessException ex)
+        {
+            throw new HubException(ex.Message);
+        }
+        catch (KeyNotFoundException ex)
+        {
+            throw new HubException(ex.Message);
+        }
+    }
+
+    public async Task DeleteMessage(
+        Guid conversationId,
+        Guid messageId)
+    {
+        var accountId = Context.User?.FindFirst(
+            JwtRegisteredClaimNames.Sub)?.Value;
+
+        if (string.IsNullOrWhiteSpace(accountId))
+        {
+            throw new HubException("Unauthorized.");
+        }
+
+        if (conversationId == Guid.Empty)
+        {
+            throw new HubException("Invalid conversation ID.");
+        }
+
+        var isMember = await _dbContext.Members
+            .AsNoTracking()
+            .AnyAsync(member =>
+                member.ConversationId == conversationId &&
+                member.AccountId == accountId,
+                Context.ConnectionAborted);
+
+        if (!isMember)
+        {
+            throw new HubException("Access denied to this conversation.");
+        }
+
+        try
+        {
+            await _messageService.DeleteMessageAsync(
+                conversationId,
+                messageId,
+                accountId,
+                Context.ConnectionAborted);
+
+            await _eventPublisher.PublishMessageDeletedAsync(
+                conversationId,
+                messageId,
+                Context.ConnectionAborted);
+        }
+        catch (ArgumentException ex)
+        {
+            throw new HubException(ex.Message);
+        }
+        catch (InvalidOperationException ex)
+        {
+            throw new HubException(ex.Message);
+        }
+        catch (UnauthorizedAccessException ex)
+        {
+            throw new HubException(ex.Message);
+        }
+        catch (KeyNotFoundException ex)
+        {
+            throw new HubException(ex.Message);
+        }
+    }
+
     public async Task<IReadOnlyList<MessageResponse>> GetMessages(
         Guid conversationId,
         int limit = 50,

@@ -48,6 +48,8 @@ public partial class MainViewModel : ObservableObject, IAsyncDisposable
     public MainViewModel()
     {
         _signalR.MessageReceived += OnMessageReceived;
+        _signalR.MessageEdited += OnMessageEdited;
+        _signalR.MessageDeleted += OnMessageDeleted;
         _signalR.Reconnected += OnReconnected;
     }
 
@@ -265,6 +267,38 @@ public partial class MainViewModel : ObservableObject, IAsyncDisposable
         });
     }
 
+    private void OnMessageEdited(ChatMessage message)
+    {
+        Dispatcher.UIThread.Post(() =>
+        {
+            if (SelectedConversation?.ConversationId == message.ConversationId)
+            {
+                var existing = Messages.FirstOrDefault(m => m.MessageId == message.MessageId);
+                if (existing is not null)
+                {
+                    var index = Messages.IndexOf(existing);
+                    Messages[index] = message;
+                }
+            }
+        });
+    }
+
+    private void OnMessageDeleted(Guid conversationId, Guid messageId)
+    {
+        Dispatcher.UIThread.Post(() =>
+        {
+            if (SelectedConversation?.ConversationId == conversationId)
+            {
+                var existing = Messages.FirstOrDefault(m => m.MessageId == messageId);
+                if (existing is not null)
+                {
+                    Messages.Remove(existing);
+                    LoadOlderMessagesCommand.NotifyCanExecuteChanged();
+                }
+            }
+        });
+    }
+
     private void AddMessage(ChatMessage message)
     {
         if (Messages.Any(m => m.MessageId == message.MessageId))
@@ -321,6 +355,8 @@ public partial class MainViewModel : ObservableObject, IAsyncDisposable
     public async ValueTask DisposeAsync()
     {
         _signalR.MessageReceived -= OnMessageReceived;
+        _signalR.MessageEdited -= OnMessageEdited;
+        _signalR.MessageDeleted -= OnMessageDeleted;
         _signalR.Reconnected -= OnReconnected;
 
         await _signalR.DisposeAsync();

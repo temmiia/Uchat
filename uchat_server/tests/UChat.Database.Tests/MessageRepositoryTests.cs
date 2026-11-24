@@ -274,4 +274,267 @@ public class MessageRepositoryTests
                 "Test message",
                 cancellationToken: TestContext.Current.CancellationToken));
     }
+
+    [Fact]
+    public async Task EditMessageAsync_Updates_Content_And_Sets_EditedAtUtc()
+    {
+        var (context, connection) = TestDbContextFactory.CreateInMemoryDbContext();
+        await using var _ = connection;
+        await using var __ = context;
+
+        var user = new User("acc_editor_1", "john_editor", "John Editor", "hash");
+        var conversation = new Conversation(ConversationType.Direct);
+        context.Users.Add(user);
+        context.Conversations.Add(conversation);
+        await context.SaveChangesAsync(TestContext.Current.CancellationToken);
+
+        var repo = new EfMessageRepository(context);
+        var messageService = new MessageService(repo);
+
+        var (created, _) = await messageService.SaveMessageAsync(
+            conversation.ConversationId,
+            user.AccountId,
+            "Original content",
+            cancellationToken: TestContext.Current.CancellationToken);
+
+        Assert.Null(created.EditedAtUtc);
+
+        var edited = await messageService.EditMessageAsync(
+            conversation.ConversationId,
+            created.MessageId,
+            user.AccountId,
+            "Updated content",
+            cancellationToken: TestContext.Current.CancellationToken);
+
+        Assert.Equal("Updated content", edited.Content);
+        Assert.NotNull(edited.EditedAtUtc);
+
+        var inDb = await repo.GetByIdAsync(created.MessageId, TestContext.Current.CancellationToken);
+        Assert.NotNull(inDb);
+        Assert.Equal("Updated content", inDb.Content);
+        Assert.NotNull(inDb.EditedAtUtc);
+    }
+
+    [Fact]
+    public async Task EditMessageAsync_Throws_When_Not_Author()
+    {
+        var (context, connection) = TestDbContextFactory.CreateInMemoryDbContext();
+        await using var _ = connection;
+        await using var __ = context;
+
+        var author = new User("acc_author", "author_usr", "Author", "hash");
+        var stranger = new User("acc_stranger", "stranger_usr", "Stranger", "hash");
+        var conversation = new Conversation(ConversationType.Direct);
+        context.Users.AddRange(author, stranger);
+        context.Conversations.Add(conversation);
+        await context.SaveChangesAsync(TestContext.Current.CancellationToken);
+
+        var repo = new EfMessageRepository(context);
+        var messageService = new MessageService(repo);
+
+        var (created, _) = await messageService.SaveMessageAsync(
+            conversation.ConversationId,
+            author.AccountId,
+            "Author's secret",
+            cancellationToken: TestContext.Current.CancellationToken);
+
+        await Assert.ThrowsAsync<UnauthorizedAccessException>(() =>
+            messageService.EditMessageAsync(
+                conversation.ConversationId,
+                created.MessageId,
+                stranger.AccountId,
+                "Hacked content",
+                cancellationToken: TestContext.Current.CancellationToken));
+    }
+
+    [Fact]
+    public async Task EditMessageAsync_Throws_When_Message_Is_Deleted()
+    {
+        var (context, connection) = TestDbContextFactory.CreateInMemoryDbContext();
+        await using var _ = connection;
+        await using var __ = context;
+
+        var author = new User("acc_del_author", "del_author", "Author", "hash");
+        var conversation = new Conversation(ConversationType.Direct);
+        context.Users.Add(author);
+        context.Conversations.Add(conversation);
+        await context.SaveChangesAsync(TestContext.Current.CancellationToken);
+
+        var repo = new EfMessageRepository(context);
+        var messageService = new MessageService(repo);
+
+        var (created, _) = await messageService.SaveMessageAsync(
+            conversation.ConversationId,
+            author.AccountId,
+            "About to be deleted",
+            cancellationToken: TestContext.Current.CancellationToken);
+
+        await messageService.DeleteMessageAsync(
+            conversation.ConversationId,
+            created.MessageId,
+            author.AccountId,
+            cancellationToken: TestContext.Current.CancellationToken);
+
+        await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            messageService.EditMessageAsync(
+                conversation.ConversationId,
+                created.MessageId,
+                author.AccountId,
+                "Try editing deleted",
+                cancellationToken: TestContext.Current.CancellationToken));
+    }
+
+    [Fact]
+    public async Task EditMessageAsync_Throws_On_Empty_Content()
+    {
+        var (context, connection) = TestDbContextFactory.CreateInMemoryDbContext();
+        await using var _ = connection;
+        await using var __ = context;
+
+        var author = new User("acc_author_empty", "author_empty", "Author", "hash");
+        var conversation = new Conversation(ConversationType.Direct);
+        context.Users.Add(author);
+        context.Conversations.Add(conversation);
+        await context.SaveChangesAsync(TestContext.Current.CancellationToken);
+
+        var repo = new EfMessageRepository(context);
+        var messageService = new MessageService(repo);
+
+        var (created, _) = await messageService.SaveMessageAsync(
+            conversation.ConversationId,
+            author.AccountId,
+            "Valid content",
+            cancellationToken: TestContext.Current.CancellationToken);
+
+        await Assert.ThrowsAsync<ArgumentException>(() =>
+            messageService.EditMessageAsync(
+                conversation.ConversationId,
+                created.MessageId,
+                author.AccountId,
+                "   ",
+                cancellationToken: TestContext.Current.CancellationToken));
+    }
+
+    [Fact]
+    public async Task DeleteMessageAsync_Soft_Deletes_Message_And_Excludes_From_History()
+    {
+        var (context, connection) = TestDbContextFactory.CreateInMemoryDbContext();
+        await using var _ = connection;
+        await using var __ = context;
+
+        var user = new User("acc_deleter", "deleter_usr", "Deleter User", "hash");
+        var conversation = new Conversation(ConversationType.Direct);
+        context.Users.Add(user);
+        context.Conversations.Add(conversation);
+        await context.SaveChangesAsync(TestContext.Current.CancellationToken);
+
+        var repo = new EfMessageRepository(context);
+        var messageService = new MessageService(repo);
+
+        var (msg1, _) = await messageService.SaveMessageAsync(
+            conversation.ConversationId,
+            user.AccountId,
+            "Keep this message",
+            cancellationToken: TestContext.Current.CancellationToken);
+
+        var (msg2, _) = await messageService.SaveMessageAsync(
+            conversation.ConversationId,
+            user.AccountId,
+            "Delete this message",
+            cancellationToken: TestContext.Current.CancellationToken);
+
+        // Delete msg2
+        await messageService.DeleteMessageAsync(
+            conversation.ConversationId,
+            msg2.MessageId,
+            user.AccountId,
+            cancellationToken: TestContext.Current.CancellationToken);
+
+        // Check in DB directly: soft deleted, content wiped
+        var inDb = await repo.GetByIdAsync(msg2.MessageId, TestContext.Current.CancellationToken);
+        Assert.NotNull(inDb);
+        Assert.True(inDb.IsDeleted);
+        Assert.Equal(string.Empty, inDb.Content);
+
+        // Check history query: excluded
+        var activeMessages = await messageService.GetMessagesAsync(
+            conversation.ConversationId,
+            limit: 50,
+            cancellationToken: TestContext.Current.CancellationToken);
+
+        Assert.Single(activeMessages);
+        Assert.Equal(msg1.MessageId, activeMessages[0].MessageId);
+    }
+
+    [Fact]
+    public async Task DeleteMessageAsync_Throws_When_Not_Author()
+    {
+        var (context, connection) = TestDbContextFactory.CreateInMemoryDbContext();
+        await using var _ = connection;
+        await using var __ = context;
+
+        var author = new User("acc_del_author2", "del_author2", "Author", "hash");
+        var stranger = new User("acc_del_stranger", "del_stranger", "Stranger", "hash");
+        var conversation = new Conversation(ConversationType.Direct);
+        context.Users.AddRange(author, stranger);
+        context.Conversations.Add(conversation);
+        await context.SaveChangesAsync(TestContext.Current.CancellationToken);
+
+        var repo = new EfMessageRepository(context);
+        var messageService = new MessageService(repo);
+
+        var (created, _) = await messageService.SaveMessageAsync(
+            conversation.ConversationId,
+            author.AccountId,
+            "Do not touch",
+            cancellationToken: TestContext.Current.CancellationToken);
+
+        await Assert.ThrowsAsync<UnauthorizedAccessException>(() =>
+            messageService.DeleteMessageAsync(
+                conversation.ConversationId,
+                created.MessageId,
+                stranger.AccountId,
+                cancellationToken: TestContext.Current.CancellationToken));
+    }
+
+    [Fact]
+    public async Task DeleteMessageAsync_Is_Idempotent_When_Already_Deleted()
+    {
+        var (context, connection) = TestDbContextFactory.CreateInMemoryDbContext();
+        await using var _ = connection;
+        await using var __ = context;
+
+        var author = new User("acc_idem_author", "idem_author", "Author", "hash");
+        var conversation = new Conversation(ConversationType.Direct);
+        context.Users.Add(author);
+        context.Conversations.Add(conversation);
+        await context.SaveChangesAsync(TestContext.Current.CancellationToken);
+
+        var repo = new EfMessageRepository(context);
+        var messageService = new MessageService(repo);
+
+        var (created, _) = await messageService.SaveMessageAsync(
+            conversation.ConversationId,
+            author.AccountId,
+            "Delete twice test",
+            cancellationToken: TestContext.Current.CancellationToken);
+
+        // First deletion
+        await messageService.DeleteMessageAsync(
+            conversation.ConversationId,
+            created.MessageId,
+            author.AccountId,
+            cancellationToken: TestContext.Current.CancellationToken);
+
+        // Second deletion: should succeed without error
+        await messageService.DeleteMessageAsync(
+            conversation.ConversationId,
+            created.MessageId,
+            author.AccountId,
+            cancellationToken: TestContext.Current.CancellationToken);
+
+        var inDb = await repo.GetByIdAsync(created.MessageId, TestContext.Current.CancellationToken);
+        Assert.NotNull(inDb);
+        Assert.True(inDb.IsDeleted);
+    }
 }

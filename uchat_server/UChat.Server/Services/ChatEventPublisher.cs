@@ -34,4 +34,43 @@ public sealed class ChatEventPublisher
                 },
                 cancellationToken);
     }
+
+    public async Task PublishMessageEditedAsync(
+        Message message,
+        CancellationToken cancellationToken = default)
+    {
+        await _hubContext.Clients
+            .Group(ChatHub.GetConversationGroup(message.ConversationId))
+            .SendAsync(
+                "MessageEdited",
+                new
+                {
+                    message.MessageId,
+                    message.ConversationId,
+                    message.SenderAccountId,
+                    message.Content,
+                    message.CreatedAtUtc,
+                    message.EditedAtUtc,
+                    message.ClientMessageId,
+                    message.ServerReceivedAtUtc
+                },
+                cancellationToken);
+    }
+
+    public async Task PublishMessageDeletedAsync(
+        Guid conversationId,
+        Guid messageId,
+        CancellationToken cancellationToken = default)
+    {
+        await _hubContext.Clients
+            .Group(ChatHub.GetConversationGroup(conversationId))
+            .SendAsync(
+                "MessageDeleted",
+                new
+                {
+                    ConversationId = conversationId,
+                    MessageId = messageId
+                },
+                cancellationToken);
+    }
 }

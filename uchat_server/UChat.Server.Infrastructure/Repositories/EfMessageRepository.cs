@@ -73,8 +73,13 @@ public sealed class EfMessageRepository : IMessageRepository
         Guid messageId,
         CancellationToken cancellationToken = default)
     {
+        var local = _context.Messages.Local.FirstOrDefault(m => m.MessageId == messageId);
+        if (local != null)
+        {
+            return Task.FromResult<Message?>(local);
+        }
+
         return _context.Messages
-            .AsNoTracking()
             .FirstOrDefaultAsync(m => m.MessageId == messageId, cancellationToken);
     }
 
@@ -96,5 +101,23 @@ public sealed class EfMessageRepository : IMessageRepository
                      m.SenderAccountId == senderAccountId &&
                      m.ClientMessageId == clientMessageId,
                 cancellationToken);
+    }
+
+    public async Task UpdateAsync(
+        Message message,
+        CancellationToken cancellationToken = default)
+    {
+        var local = _context.Messages.Local.FirstOrDefault(m => m.MessageId == message.MessageId);
+        if (local != null && !ReferenceEquals(local, message))
+        {
+            _context.Entry(local).State = EntityState.Detached;
+            _context.Messages.Update(message);
+        }
+        else if (local == null)
+        {
+            _context.Messages.Update(message);
+        }
+
+        await _context.SaveChangesAsync(cancellationToken);
     }
 }

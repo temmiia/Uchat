@@ -11,6 +11,8 @@ public sealed class ChatSignalRClient : IAsyncDisposable
     private readonly HubConnection _connection;
 
     public event Action<ChatMessage>? MessageReceived;
+    public event Action<ChatMessage>? MessageEdited;
+    public event Action<Guid, Guid>? MessageDeleted;
     public event Action? Reconnected;
 
     public ChatSignalRClient()
@@ -27,6 +29,16 @@ public sealed class ChatSignalRClient : IAsyncDisposable
         _connection.On<ChatMessage>("MessageCreated", message =>
         {
             MessageReceived?.Invoke(message);
+        });
+
+        _connection.On<ChatMessage>("MessageEdited", message =>
+        {
+            MessageEdited?.Invoke(message);
+        });
+
+        _connection.On<MessageDeletedPayload>("MessageDeleted", payload =>
+        {
+            MessageDeleted?.Invoke(payload.ConversationId, payload.MessageId);
         });
 
         _connection.Reconnected += _ =>
@@ -59,5 +71,13 @@ public sealed class ChatSignalRClient : IAsyncDisposable
             Guid.NewGuid().ToString("N"),
             DateTime.UtcNow);
 
+    public Task EditMessageAsync(Guid conversationId, Guid messageId, string newContent) =>
+        _connection.InvokeAsync("EditMessage", conversationId, messageId, newContent);
+
+    public Task DeleteMessageAsync(Guid conversationId, Guid messageId) =>
+        _connection.InvokeAsync("DeleteMessage", conversationId, messageId);
+
     public ValueTask DisposeAsync() => _connection.DisposeAsync();
+
+    private sealed record MessageDeletedPayload(Guid ConversationId, Guid MessageId);
 }

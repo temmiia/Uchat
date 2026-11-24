@@ -110,6 +110,111 @@ public sealed class MessagesController : ControllerBase
         }
     }
 
+    [HttpPut("{messageId:guid}")]
+    public async Task<ActionResult<MessageResponse>> EditMessage(
+        [FromRoute] Guid conversationId,
+        [FromRoute] Guid messageId,
+        [FromBody] EditMessageRequest request,
+        CancellationToken cancellationToken = default)
+    {
+        var accountId = GetCurrentAccountId();
+        if (string.IsNullOrWhiteSpace(accountId))
+        {
+            return Unauthorized();
+        }
+
+        var isMember = await CheckMembershipAsync(conversationId, accountId, cancellationToken);
+        if (!isMember)
+        {
+            return Forbid();
+        }
+
+        try
+        {
+            var response = await _messageService.EditMessageAsync(
+                conversationId,
+                messageId,
+                accountId,
+                request.Content,
+                cancellationToken);
+
+            var messageEntity = await _dbContext.Messages
+                .AsNoTracking()
+                .FirstOrDefaultAsync(m => m.MessageId == response.MessageId, cancellationToken);
+
+            if (messageEntity is not null)
+            {
+                await _eventPublisher.PublishMessageEditedAsync(messageEntity, cancellationToken);
+            }
+
+            return Ok(response);
+        }
+        catch (ArgumentException ex)
+        {
+            return BadRequest(new { error = ex.Message });
+        }
+        catch (UnauthorizedAccessException)
+        {
+            return Forbid();
+        }
+        catch (KeyNotFoundException ex)
+        {
+            return NotFound(new { error = ex.Message });
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(new { error = ex.Message });
+        }
+    }
+
+    [HttpDelete("{messageId:guid}")]
+    public async Task<IActionResult> DeleteMessage(
+        [FromRoute] Guid conversationId,
+        [FromRoute] Guid messageId,
+        CancellationToken cancellationToken = default)
+    {
+        var accountId = GetCurrentAccountId();
+        if (string.IsNullOrWhiteSpace(accountId))
+        {
+            return Unauthorized();
+        }
+
+        var isMember = await CheckMembershipAsync(conversationId, accountId, cancellationToken);
+        if (!isMember)
+        {
+            return Forbid();
+        }
+
+        try
+        {
+            await _messageService.DeleteMessageAsync(
+                conversationId,
+                messageId,
+                accountId,
+                cancellationToken);
+
+            await _eventPublisher.PublishMessageDeletedAsync(conversationId, messageId, cancellationToken);
+
+            return NoContent();
+        }
+        catch (ArgumentException ex)
+        {
+            return BadRequest(new { error = ex.Message });
+        }
+        catch (UnauthorizedAccessException)
+        {
+            return Forbid();
+        }
+        catch (KeyNotFoundException ex)
+        {
+            return NotFound(new { error = ex.Message });
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(new { error = ex.Message });
+        }
+    }
+
     private string? GetCurrentAccountId() =>
         User.FindFirst(JwtRegisteredClaimNames.Sub)?.Value
         ?? User.FindFirst(ClaimTypes.NameIdentifier)?.Value;

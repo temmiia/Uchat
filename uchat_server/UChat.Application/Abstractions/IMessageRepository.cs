@@ -24,4 +24,8 @@ public interface IMessageRepository
         string senderAccountId,
         string clientMessageId,
         CancellationToken cancellationToken = default);
+
+    Task UpdateAsync(
+        Message message,
+        CancellationToken cancellationToken = default);
 }
