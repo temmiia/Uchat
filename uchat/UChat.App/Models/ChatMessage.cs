@@ -15,7 +15,6 @@ public sealed class ChatMessage
     public DateTime? EditedAtUtc { get; set; }
     public string? SenderDisplayName { get; set; }
     public string? ClientMessageId { get; set; }
-    public bool IsOwnMessage { get; set; }
     [JsonIgnore]
     public bool IsOwnMessage => !string.IsNullOrWhiteSpace(AuthSession.AccountId)
         && string.Equals(SenderAccountId, AuthSession.AccountId, StringComparison.Ordinal);

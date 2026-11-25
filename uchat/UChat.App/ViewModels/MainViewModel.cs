@@ -40,6 +40,8 @@ public partial class MainViewModel : ObservableObject, IAsyncDisposable
 
     [ObservableProperty]
     private bool isNewChatInputVisible;
+
+    [ObservableProperty]
     private bool isGroupDialogOpen;
 
     [ObservableProperty]
@@ -63,13 +65,10 @@ public partial class MainViewModel : ObservableObject, IAsyncDisposable
     private string messageText = "";
 
     [ObservableProperty]
-    private ChatMessage? editingMessage;
-
-    [ObservableProperty]
-    private bool isEditingMessage;
     [NotifyPropertyChangedFor(nameof(IsEditing))]
     [NotifyPropertyChangedFor(nameof(SendButtonText))]
     private ChatMessage? editingMessage;
+
     public bool IsEditing => EditingMessage is not null;
     public string SendButtonText => IsEditing ? "Save" : "Send";
 
@@ -116,13 +115,12 @@ public partial class MainViewModel : ObservableObject, IAsyncDisposable
         {
             var conversations = await _conversationsApi.GetConversationsAsync();
             foreach (var conversation in conversations)
-                Conversations.Add(conversation);
-
-            ApplyConversationFilter();
             {
                 if (!Conversations.Any(c => c.ConversationId == conversation.ConversationId))
                     Conversations.Add(conversation);
             }
+
+            ApplyConversationFilter();
         }
         catch (Exception ex) { Status = $"Load error: {ex.Message}"; }
         finally { _refreshLock.Release(); }
@@ -148,6 +146,7 @@ public partial class MainViewModel : ObservableObject, IAsyncDisposable
 
     private void ApplyConversationFilter()
     {
+        var currentSelectedId = SelectedConversation?.ConversationId;
         var query = SearchText.Trim();
         var matches = Conversations
             .Where(conversation =>
@@ -159,6 +158,16 @@ public partial class MainViewModel : ObservableObject, IAsyncDisposable
         FilteredConversations.Clear();
         foreach (var conversation in matches)
             FilteredConversations.Add(conversation);
+
+        if (currentSelectedId.HasValue)
+        {
+            SelectedConversation = FilteredConversations.FirstOrDefault(c => c.ConversationId == currentSelectedId.Value);
+        }
+
+        if (SelectedConversation is null && FilteredConversations.Count > 0)
+        {
+            SelectedConversation = FilteredConversations[0];
+        }
     }
 
     [RelayCommand]
@@ -197,6 +206,8 @@ public partial class MainViewModel : ObservableObject, IAsyncDisposable
     private bool CanCreateChat()
     {
         return !string.IsNullOrWhiteSpace(NewChatUsername);
+    }
+
     [RelayCommand]
     private void OpenGroupDialog()
     {
@@ -250,30 +261,21 @@ public partial class MainViewModel : ObservableObject, IAsyncDisposable
                 username,
                 StringComparison.OrdinalIgnoreCase)))
         {
-            GroupError = "This user is already added.";
-            return;
-        }
-
-        if (GroupMembers.Count >= 99)
-        {
-            GroupError = "Maximum 99 invited members.";
+            GroupError = "User is already added.";
             return;
         }
 
         GroupMembers.Add(username);
-
         GroupMemberUsername = "";
     }
 
     [RelayCommand]
     private void RemoveGroupMember(string? username)
     {
-        if (IsCreatingGroup || username is null)
+        if (IsCreatingGroup || string.IsNullOrWhiteSpace(username))
             return;
 
         GroupMembers.Remove(username);
-
-        GroupError = "";
     }
 
     [RelayCommand]
@@ -282,25 +284,18 @@ public partial class MainViewModel : ObservableObject, IAsyncDisposable
         if (IsCreatingGroup)
             return;
 
-        GroupError = "";
-
         var title = GroupTitle.Trim();
+        GroupError = "";
 
         if (string.IsNullOrWhiteSpace(title))
         {
-            GroupError = "Enter a group name.";
+            GroupError = "Group title is required.";
             return;
         }
 
-        if (title.Length > 128)
+        if (title.Length > 100)
         {
-            GroupError = "Group name is too long.";
-            return;
-        }
-
-        if (!string.IsNullOrWhiteSpace(GroupMemberUsername))
-        {
-            GroupError = "Press Add to include the entered username.";
+            GroupError = "Title cannot exceed 100 characters.";
             return;
         }
 
@@ -321,24 +316,10 @@ public partial class MainViewModel : ObservableObject, IAsyncDisposable
 
             await RefreshConversationsAsync();
 
-            var existing = Conversations.FirstOrDefault(
+            SelectedConversation = Conversations.FirstOrDefault(
                 c => c.ConversationId == conversation.ConversationId);
 
-            if (existing is null)
-            {
-                Conversations.Insert(0, conversation);
-                existing = conversation;
-            }
-
-            SelectedConversation = existing;
-
-            IsGroupDialogOpen = false;
-
-            GroupTitle = "";
-            GroupMemberUsername = "";
-            GroupMembers.Clear();
-
-            Status = $"Group created: {conversation.DisplayName}";
+            CloseGroupDialog();
         }
         catch (Exception ex)
         {
@@ -359,64 +340,54 @@ public partial class MainViewModel : ObservableObject, IAsyncDisposable
 
         HasMoreMessages = false;
         IsLoadingHistory = false;
+        LoadOlderMessagesCommand.NotifyCanExecuteChanged();
+
         Messages.Clear();
 
-        _ = SelectConversationAsync(value, version);
+        if (value is null)
+            return;
+
+        _ = LoadConversationAsync(value.ConversationId, version);
     }
 
-    private bool IsCurrentConversation(Guid conversationId, int version)
-    {
-        return _conversationVersion == version
-            && SelectedConversation?.ConversationId == conversationId;
-    }
-
-    private async Task SelectConversationAsync(
-        ChatConversation? conversation,
+    private async Task LoadConversationAsync(
+        Guid conversationId,
         int version)
     {
-        if (conversation is null)
-            return;
+        Status = "Loading...";
 
         try
         {
-            if (!_signalR.IsConnected)
-                await _signalR.ConnectAsync();
+            await _signalR.JoinConversationAsync(conversationId);
 
-            if (!IsCurrentConversation(conversation.ConversationId, version))
-                return;
-
-            await _signalR.JoinConversationAsync(conversation.ConversationId);
-
-            if (!IsCurrentConversation(conversation.ConversationId, version))
+            if (!IsCurrentConversation(conversationId, version))
                 return;
 
             var history = await _messagesApi.GetMessagesAsync(
-                conversation.ConversationId,
+                conversationId,
                 limit: PageSize);
 
-            if (!IsCurrentConversation(conversation.ConversationId, version))
+            if (!IsCurrentConversation(conversationId, version))
                 return;
+
+            Messages.Clear();
+            HasMoreMessages = history.Count == PageSize;
 
             foreach (var message in history.OrderBy(m => m.CreatedAtUtc))
                 AddMessage(message);
 
-            HasMoreMessages = history.Count == PageSize;
-
-            Status = $"Chat: {conversation.DisplayName}";
+            Status = "Connected";
         }
         catch (Exception ex)
         {
-            if (IsCurrentConversation(conversation.ConversationId, version))
-                Status = $"Chat error: {ex.Message}";
+            if (IsCurrentConversation(conversationId, version))
+                Status = $"Load error: {ex.Message}";
         }
-    }
-
-    private bool CanLoadOlderMessages()
-    {
-        return SelectedConversation is not null
-            && HasMoreMessages
-            && !IsLoadingHistory
-            && Messages.Count > 0;
+        finally
+        {
+            if (IsCurrentConversation(conversationId, version))
+                LoadOlderMessagesCommand.NotifyCanExecuteChanged();
+        }
     }
 
     [RelayCommand(CanExecute = nameof(CanLoadOlderMessages))]
@@ -424,15 +395,15 @@ public partial class MainViewModel : ObservableObject, IAsyncDisposable
     {
         var conversation = SelectedConversation;
 
-        if (conversation is null || !CanLoadOlderMessages())
+        if (conversation is null || IsLoadingHistory || !HasMoreMessages)
+            return;
+
+        var oldestMessage = Messages.FirstOrDefault();
+
+        if (oldestMessage is null)
             return;
 
         var version = _conversationVersion;
-
-        var oldestMessage = Messages
-            .OrderBy(m => m.CreatedAtUtc)
-            .First();
-
         IsLoadingHistory = true;
 
         try
@@ -449,8 +420,6 @@ public partial class MainViewModel : ObservableObject, IAsyncDisposable
                 .Select(m => m.MessageId)
                 .ToHashSet();
 
-            // Insert at index 0 in reverse chronological order.
-            // The final collection remains oldest -> newest.
             foreach (var message in olderMessages
                 .OrderByDescending(m => m.CreatedAtUtc))
             {
@@ -459,21 +428,35 @@ public partial class MainViewModel : ObservableObject, IAsyncDisposable
             }
 
             HasMoreMessages = olderMessages.Count == PageSize;
-
-            Status = $"Loaded {olderMessages.Count} older messages";
         }
         catch (Exception ex)
         {
             if (IsCurrentConversation(conversation.ConversationId, version))
-                Status = $"History loading failed: {ex.Message}";
+                Status = $"History error: {ex.Message}";
         }
         finally
         {
-            // Do not overwrite the loading state of another conversation.
             if (IsCurrentConversation(conversation.ConversationId, version))
+            {
                 IsLoadingHistory = false;
+                LoadOlderMessagesCommand.NotifyCanExecuteChanged();
+            }
         }
     }
+
+    private bool CanLoadOlderMessages() =>
+        SelectedConversation is not null
+        && !IsLoadingHistory
+        && HasMoreMessages;
+
+    private bool IsCurrentConversation(
+        Guid conversationId,
+        int version) =>
+        version == _conversationVersion
+        && SelectedConversation?.ConversationId == conversationId;
+
+    [RelayCommand]
+    private void EditMessage(ChatMessage? message) => StartEdit(message);
 
     [RelayCommand]
     private void StartEdit(ChatMessage? message)
@@ -486,7 +469,6 @@ public partial class MainViewModel : ObservableObject, IAsyncDisposable
     [RelayCommand]
     private void CancelEdit()
     {
-        if (EditingMessage is null) return;
         EditingMessage = null;
         MessageText = "";
     }
@@ -502,40 +484,45 @@ public partial class MainViewModel : ObservableObject, IAsyncDisposable
     [RelayCommand]
     private async Task SendMessageAsync()
     {
+        if (SelectedConversation is null)
+        {
+            if (FilteredConversations.Count > 0)
+            {
+                SelectedConversation = FilteredConversations[0];
+            }
+            else
+            {
+                Status = "Select or create a conversation first";
+                return;
+            }
+        }
+
         var conversation = SelectedConversation;
         var content = MessageText.Trim();
         var editing = EditingMessage;
         var version = _conversationVersion;
+
         if (conversation is null || content.Length == 0 || content.Length > 4000) return;
+
         try
         {
-            if (EditingMessage is not null)
+            if (editing is not null)
             {
-                await _signalR.EditMessageAsync(
-                    conversation.ConversationId,
-                    EditingMessage.MessageId,
-                    content);
+                if (!editing.IsOwnMessage || editing.ConversationId != conversation.ConversationId) return;
+
+                await _messagesApi.EditMessageAsync(conversation.ConversationId, editing.MessageId, content);
 
                 CancelEdit();
                 return;
             }
 
-            await _signalR.SendMessageAsync(
-                conversation.ConversationId,
-                content);
-            if (editing is not null)
-            {
-                if (!editing.IsOwnMessage || editing.ConversationId != conversation.ConversationId) return;
-                await _messagesApi.EditMessageAsync(conversation.ConversationId, editing.MessageId, content);
-            }
-            else await _signalR.SendMessageAsync(conversation.ConversationId, content);
-            if (IsCurrentConversation(conversation.ConversationId, version) && EditingMessage == editing && MessageText.Trim() == content)
-            {
-                EditingMessage = null;
-                MessageText = "";
-            }
+            await _signalR.SendMessageAsync(conversation.ConversationId, content);
+            MessageText = "";
         }
-        catch (Exception ex) { Status = $"Send error: {ex.Message}"; }
+        catch (Exception ex)
+        {
+            Status = $"Send error: {ex.Message}";
+        }
     }
 
     private ChatMessage Prepare(ChatMessage message)
@@ -572,43 +559,6 @@ public partial class MainViewModel : ObservableObject, IAsyncDisposable
         return message;
     }
 
-    [RelayCommand]
-    private void EditMessage(ChatMessage message)
-    {
-        if (!message.IsOwnMessage)
-            return;
-
-        EditingMessage = message;
-        IsEditingMessage = true;
-        MessageText = message.Content;
-    }
-
-    [RelayCommand]
-    private void CancelEdit()
-    {
-        EditingMessage = null;
-        IsEditingMessage = false;
-        MessageText = "";
-    }
-
-    [RelayCommand]
-    private async Task DeleteMessageAsync(ChatMessage message)
-    {
-        var conversation = SelectedConversation;
-        if (conversation is null || !message.IsOwnMessage)
-            return;
-
-        try
-        {
-            await _signalR.DeleteMessageAsync(
-                conversation.ConversationId,
-                message.MessageId);
-        }
-        catch (Exception ex)
-        {
-            Status = $"Delete error: {ex.Message}";
-        }
-    }
     private void OnMessageEdited(ChatMessage message) => Dispatcher.UIThread.Post(() =>
     {
         if (SelectedConversation?.ConversationId != message.ConversationId || _deleted.Contains(message.MessageId)) return;
@@ -639,19 +589,11 @@ public partial class MainViewModel : ObservableObject, IAsyncDisposable
         });
     }
 
-
     private void AddMessage(ChatMessage message)
     {
         if (_deleted.Contains(message.MessageId) || Messages.Any(m => m.MessageId == message.MessageId))
             return;
 
-        message.IsOwnMessage =
-            string.Equals(
-                message.SenderAccountId,
-                AuthSession.AccountId,
-                StringComparison.Ordinal);
-
-        Messages.Add(message);
         Messages.Add(Prepare(message));
 
         LoadOlderMessagesCommand.NotifyCanExecuteChanged();
