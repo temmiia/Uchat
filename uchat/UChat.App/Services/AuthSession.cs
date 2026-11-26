@@ -1,15 +1,11 @@
 using System;
 using System.Text.Json;
 
-using System;
-
 namespace UChat.App.Services;
 
 public static class AuthSession
 {
     public static string? AccessToken { get; private set; }
-    public static string? AccountId { get; private set; }
-
     public static string? AccountId { get; private set; }
 
     public static bool IsAuthenticated =>
@@ -38,20 +34,8 @@ public static class AuthSession
             var payload = parts[1]
                 .Replace('-', '+')
                 .Replace('_', '/');
-            payload = payload.PadRight(payload.Length + ((4 - payload.Length % 4) % 4), '=');
 
-            using var document = System.Text.Json.JsonDocument.Parse(
-                Convert.FromBase64String(payload));
-
-            return document.RootElement.TryGetProperty("sub", out var sub)
-                ? sub.GetString()
-                : null;
-            var payload = token.Split('.')[1]
-                .Replace('-', '+')
-                .Replace('_', '/');
-
-            payload = payload.PadRight(
-                (payload.Length + 3) / 4 * 4, '=');
+            payload = payload.PadRight((payload.Length + 3) / 4 * 4, '=');
 
             var bytes = Convert.FromBase64String(payload);
 

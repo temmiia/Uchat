@@ -86,7 +86,6 @@ public sealed class EfMessageRepository : IMessageRepository
         }
 
         return _context.Messages
-            .FirstOrDefaultAsync(m => m.MessageId == messageId, cancellationToken);
             .AsNoTracking()
             .Include(m => m.Sender)
             .FirstOrDefaultAsync(
@@ -123,15 +122,13 @@ public sealed class EfMessageRepository : IMessageRepository
         if (local != null && !ReferenceEquals(local, message))
         {
             _context.Entry(local).State = EntityState.Detached;
-            _context.Messages.Update(message);
         }
-        else if (local == null)
-        {
-            _context.Messages.Update(message);
-        }
-        var entry = _context.Entry(message);
 
-        entry.State = EntityState.Unchanged;
+        var entry = _context.Entry(message);
+        if (entry.State == EntityState.Detached)
+        {
+            entry.State = EntityState.Unchanged;
+        }
 
         entry.Property(m => m.Content).IsModified = true;
         entry.Property(m => m.EditedAtUtc).IsModified = true;
