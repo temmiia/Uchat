@@ -11,16 +11,11 @@ namespace UChat.App.Services;
 
 public sealed class ConversationsApiClient
 {
-    private static readonly HttpClient Http = new()
-    {
-        BaseAddress = new Uri("http://localhost:5049/")
-    };
-
     private static HttpRequestMessage CreateRequest(
         HttpMethod method,
         string url)
     {
-        var request = new HttpRequestMessage(method, url);
+        var request = new HttpRequestMessage(method, NetworkConfig.GetApiUri(url));
 
         request.Headers.Authorization =
             new AuthenticationHeaderValue(
@@ -37,7 +32,7 @@ public sealed class ConversationsApiClient
             HttpMethod.Get,
             "api/conversations");
 
-        using var response = await Http.SendAsync(request);
+        using var response = await NetworkConfig.Http.SendAsync(request);
 
         await EnsureSuccessAsync(response);
 
@@ -58,7 +53,7 @@ public sealed class ConversationsApiClient
             TargetUsername = username
         });
 
-        using var response = await Http.SendAsync(request);
+        using var response = await NetworkConfig.Http.SendAsync(request);
 
         await EnsureSuccessAsync(response);
 
@@ -82,7 +77,7 @@ public sealed class ConversationsApiClient
             MemberUsernames = memberUsernames
         });
 
-        using var response = await Http.SendAsync(request);
+        using var response = await NetworkConfig.Http.SendAsync(request);
 
         await EnsureSuccessAsync(response);
 

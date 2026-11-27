@@ -488,3 +488,16 @@ $RECYCLE.BIN/
 
 # Vim temporary swap files
 *.swp
+
+# Secrets, certificates and environment configuration
+.env
+.env.*
+*.pfx
+*.pem
+*.crt
+*.cer
+*.key
+secrets.json
+appsettings.Production.json
+appsettings.*.local.json
+

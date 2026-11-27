@@ -11,11 +11,6 @@ namespace UChat.App.Services;
 
 public sealed class MessagesApiClient
 {
-    private static readonly HttpClient Http = new()
-    {
-        BaseAddress = new Uri("http://localhost:5049/")
-    };
-
     public async Task<List<ChatMessage>> GetMessagesAsync(
         Guid conversationId,
         int limit = 50,
@@ -32,13 +27,13 @@ public sealed class MessagesApiClient
             url += $"&before={Uri.EscapeDataString(before)}";
         }
 
-        using var request = new HttpRequestMessage(HttpMethod.Get, url);
+        using var request = new HttpRequestMessage(HttpMethod.Get, NetworkConfig.GetApiUri(url));
 
         request.Headers.Authorization =
             new AuthenticationHeaderValue(
                 "Bearer", AuthSession.AccessToken);
 
-        using var response = await Http.SendAsync(request);
+        using var response = await NetworkConfig.Http.SendAsync(request);
 
         response.EnsureSuccessStatusCode();
 
@@ -54,7 +49,7 @@ public sealed class MessagesApiClient
         var url =
             $"api/conversations/{conversationId:D}/messages/{messageId:D}";
 
-        using var request = new HttpRequestMessage(HttpMethod.Patch, url);
+        using var request = new HttpRequestMessage(HttpMethod.Patch, NetworkConfig.GetApiUri(url));
 
         request.Headers.Authorization =
             new AuthenticationHeaderValue(
@@ -62,7 +57,7 @@ public sealed class MessagesApiClient
 
         request.Content = JsonContent.Create(new { Content = content });
 
-        using var response = await Http.SendAsync(request);
+        using var response = await NetworkConfig.Http.SendAsync(request);
 
         response.EnsureSuccessStatusCode();
     }
@@ -74,13 +69,13 @@ public sealed class MessagesApiClient
         var url =
             $"api/conversations/{conversationId:D}/messages/{messageId:D}";
 
-        using var request = new HttpRequestMessage(HttpMethod.Delete, url);
+        using var request = new HttpRequestMessage(HttpMethod.Delete, NetworkConfig.GetApiUri(url));
 
         request.Headers.Authorization =
             new AuthenticationHeaderValue(
                 "Bearer", AuthSession.AccessToken);
 
-        using var response = await Http.SendAsync(request);
+        using var response = await NetworkConfig.Http.SendAsync(request);
 
         response.EnsureSuccessStatusCode();
     }

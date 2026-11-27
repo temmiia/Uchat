@@ -20,7 +20,7 @@ public sealed class ChatSignalRClient : IAsyncDisposable
     public ChatSignalRClient()
     {
         _connection = new HubConnectionBuilder()
-            .WithUrl("http://localhost:5049/hubs/chat", options =>
+            .WithUrl(NetworkConfig.HubUrl, options =>
             {
                 options.AccessTokenProvider =
                     () => Task.FromResult(AuthSession.AccessToken);

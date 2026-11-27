@@ -15,15 +15,18 @@ public sealed class ChatHub : Hub
     private readonly AppDbContext _dbContext;
     private readonly MessageService _messageService;
     private readonly ChatEventPublisher _eventPublisher;
+    private readonly ILogger<ChatHub> _logger;
 
     public ChatHub(
         AppDbContext dbContext,
         MessageService messageService,
-        ChatEventPublisher eventPublisher)
+        ChatEventPublisher eventPublisher,
+        ILogger<ChatHub> logger)
     {
         _dbContext = dbContext;
         _messageService = messageService;
         _eventPublisher = eventPublisher;
+        _logger = logger;
     }
 
     private string? AccountId =>
@@ -38,6 +41,7 @@ public sealed class ChatHub : Hub
 
         if (string.IsNullOrWhiteSpace(accountId))
         {
+            _logger.LogWarning("Unauthenticated SignalR connection attempt aborted: {ConnectionId}", Context.ConnectionId);
             Context.Abort();
             return;
         }
@@ -47,7 +51,24 @@ public sealed class ChatHub : Hub
             GetAccountGroup(accountId),
             Context.ConnectionAborted);
 
+        _logger.LogInformation("SignalR client {ConnectionId} connected for account {AccountId}", Context.ConnectionId, accountId);
+
         await base.OnConnectedAsync();
+    }
+
+    public override async Task OnDisconnectedAsync(Exception? exception)
+    {
+        var accountId = AccountId;
+        if (exception is not null)
+        {
+            _logger.LogWarning(exception, "SignalR client {ConnectionId} disconnected with error for account {AccountId}", Context.ConnectionId, accountId);
+        }
+        else
+        {
+            _logger.LogInformation("SignalR client {ConnectionId} disconnected for account {AccountId}", Context.ConnectionId, accountId);
+        }
+
+        await base.OnDisconnectedAsync(exception);
     }
 
     public static string GetAccountGroup(string accountId)
@@ -87,6 +108,8 @@ public sealed class ChatHub : Hub
             Context.ConnectionId,
             GetConversationGroup(conversationId),
             Context.ConnectionAborted);
+
+        _logger.LogInformation("Account {AccountId} joined conversation {ConversationId}", accountId, conversationId);
     }
 
     public async Task LeaveConversation(
@@ -95,6 +118,8 @@ public sealed class ChatHub : Hub
         await Groups.RemoveFromGroupAsync(
             Context.ConnectionId,
             GetConversationGroup(conversationId));
+
+        _logger.LogInformation("Account {AccountId} left conversation {ConversationId}", AccountId, conversationId);
     }
 
     public async Task SendMessage(

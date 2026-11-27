@@ -9,8 +9,12 @@ sealed class Program
     // що залежить від SynchronizationContext, до виклику AppMain: усе ще не ініціалізовано,
     // і це може призвести до помилок.
     [STAThread]
-    public static void Main(string[] args) => BuildAvaloniaApp()
-        .StartWithClassicDesktopLifetime(args);
+    public static void Main(string[] args)
+    {
+        Services.NetworkConfig.Initialize(args);
+        BuildAvaloniaApp()
+            .StartWithClassicDesktopLifetime(args);
+    }
 
     // Конфігурація Avalonia; не видаляйте, вона також використовується візуальним дизайнером.
     public static AppBuilder BuildAvaloniaApp()

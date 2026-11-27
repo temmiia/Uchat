@@ -18,14 +18,18 @@ public sealed class JwtTokenService
 
     public string GenerateToken(User user)
     {
-        var key = _configuration["Jwt:Key"]
+        var key = Environment.GetEnvironmentVariable("UCHAT_JWT_KEY")
+            ?? Environment.GetEnvironmentVariable("UCHAT_JWT_SECRET")
+            ?? _configuration["Jwt:Key"]
             ?? throw new InvalidOperationException("JWT key is not configured.");
 
-        var issuer = _configuration["Jwt:Issuer"]
-            ?? throw new InvalidOperationException("JWT issuer is not configured.");
+        var issuer = Environment.GetEnvironmentVariable("UCHAT_JWT_ISSUER")
+            ?? _configuration["Jwt:Issuer"]
+            ?? "UChat.Server";
 
-        var audience = _configuration["Jwt:Audience"]
-            ?? throw new InvalidOperationException("JWT audience is not configured.");
+        var audience = Environment.GetEnvironmentVariable("UCHAT_JWT_AUDIENCE")
+            ?? _configuration["Jwt:Audience"]
+            ?? "UChat.Client";
 
         var credentials = new SigningCredentials(
             new SymmetricSecurityKey(Encoding.UTF8.GetBytes(key)),

@@ -9,11 +9,6 @@ namespace UChat.App.Services;
 
 public sealed class AuthApiClient
 {
-    private static readonly HttpClient Http = new()
-    {
-        BaseAddress = new Uri("http://localhost:5049/")
-    };
-
     private static readonly JsonSerializerOptions JsonOptions =
         new(JsonSerializerDefaults.Web);
 
@@ -22,8 +17,8 @@ public sealed class AuthApiClient
         string displayName,
         string password)
     {
-        using var response = await Http.PostAsJsonAsync(
-            "api/auth/register",
+        using var response = await NetworkConfig.Http.PostAsJsonAsync(
+            NetworkConfig.GetApiUri("api/auth/register"),
             new { Username = username, DisplayName = displayName, Password = password });
 
         await EnsureSuccessAsync(response);
@@ -31,8 +26,8 @@ public sealed class AuthApiClient
 
     public async Task<string> LoginAsync(string username, string password)
     {
-        using var response = await Http.PostAsJsonAsync(
-            "api/auth/login",
+        using var response = await NetworkConfig.Http.PostAsJsonAsync(
+            NetworkConfig.GetApiUri("api/auth/login"),
             new { Username = username, Password = password });
 
         await EnsureSuccessAsync(response);

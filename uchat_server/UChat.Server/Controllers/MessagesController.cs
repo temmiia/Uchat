@@ -17,15 +17,18 @@ public sealed class MessagesController : ControllerBase
     private readonly AppDbContext _dbContext;
     private readonly MessageService _messageService;
     private readonly ChatEventPublisher _eventPublisher;
+    private readonly ILogger<MessagesController> _logger;
 
     public MessagesController(
         AppDbContext dbContext,
         MessageService messageService,
-        ChatEventPublisher eventPublisher)
+        ChatEventPublisher eventPublisher,
+        ILogger<MessagesController> logger)
     {
         _dbContext = dbContext;
         _messageService = messageService;
         _eventPublisher = eventPublisher;
+        _logger = logger;
     }
 
     [HttpGet]
@@ -109,6 +112,8 @@ public sealed class MessagesController : ControllerBase
                         cancellationToken);
                 }
 
+                _logger.LogInformation("Message {MessageId} created in conversation {ConversationId} by account {AccountId}", response.MessageId, conversationId, accountId);
+
                 return StatusCode(
                     StatusCodes.Status201Created, response);
             }
@@ -160,6 +165,8 @@ public sealed class MessagesController : ControllerBase
                 await _eventPublisher.PublishMessageEditedAsync(messageEntity, cancellationToken);
             }
 
+            _logger.LogInformation("Message {MessageId} edited in conversation {ConversationId} by account {AccountId}", messageId, conversationId, accountId);
+
             return Ok(response);
         }
         catch (ArgumentException ex)
@@ -208,6 +215,8 @@ public sealed class MessagesController : ControllerBase
                 cancellationToken);
 
             await _eventPublisher.PublishMessageDeletedAsync(conversationId, messageId, cancellationToken);
+
+            _logger.LogInformation("Message {MessageId} deleted in conversation {ConversationId} by account {AccountId}", messageId, conversationId, accountId);
 
             return NoContent();
         }

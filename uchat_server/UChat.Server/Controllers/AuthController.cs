@@ -13,15 +13,18 @@ public sealed class AuthController : ControllerBase
     private readonly RegisterUserService _registerService;
     private readonly LoginUserService _loginService;
     private readonly JwtTokenService _jwtTokenService;
+    private readonly ILogger<AuthController> _logger;
 
     public AuthController(
         RegisterUserService registerService,
         LoginUserService loginService,
-        JwtTokenService jwtTokenService)
+        JwtTokenService jwtTokenService,
+        ILogger<AuthController> logger)
     {
         _registerService = registerService;
         _loginService = loginService;
         _jwtTokenService = jwtTokenService;
+        _logger = logger;
     }
 
     [AllowAnonymous]
@@ -34,6 +37,8 @@ public sealed class AuthController : ControllerBase
         {
             var user = await _registerService.RegisterAsync(
                 request, cancellationToken);
+
+            _logger.LogInformation("New user registered: UserName={UserName}, AccountId={AccountId}", user.UserName, user.AccountId);
 
             var response = new RegisterResponse(
                 user.AccountId,
@@ -65,6 +70,7 @@ public sealed class AuthController : ControllerBase
 
         if (user is null)
         {
+            _logger.LogWarning("Failed login attempt for username '{UserName}'", request.Username?.Trim());
             return Unauthorized(new
             {
                 error = "Invalid username or password."
@@ -72,6 +78,7 @@ public sealed class AuthController : ControllerBase
         }
 
         var token = _jwtTokenService.GenerateToken(user);
+        _logger.LogInformation("User '{UserName}' (AccountId={AccountId}) logged in successfully", user.UserName, user.AccountId);
 
         return Ok(new LoginResponse(
             AccessToken: token,
