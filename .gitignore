@@ -493,11 +493,15 @@ $RECYCLE.BIN/
 .env
 .env.*
 *.pfx
+*.p12
+*.pkcs12
 *.pem
 *.crt
 *.cer
+*.der
 *.key
 secrets.json
+*.publishsettings
 appsettings.Production.json
 appsettings.*.local.json
 

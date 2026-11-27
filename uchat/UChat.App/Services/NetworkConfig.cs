@@ -5,7 +5,9 @@ namespace UChat.App.Services;
 
 public static class NetworkConfig
 {
-    private static string _baseUrl = "http://localhost:5049/";
+    private static string _baseUrl = Environment.GetEnvironmentVariable("UCHAT_SERVER_URL")
+        ?? Environment.GetEnvironmentVariable("UCHAT_API_URL")
+        ?? "http://localhost:5049/";
 
     public static string BaseUrl
     {
@@ -19,7 +21,15 @@ public static class NetworkConfig
 
     public static void Initialize(string[] args)
     {
-        // Support CLI args: uchat <server_ip> <port>
+        var envUrl = Environment.GetEnvironmentVariable("UCHAT_SERVER_URL")
+            ?? Environment.GetEnvironmentVariable("UCHAT_API_URL");
+
+        if (!string.IsNullOrWhiteSpace(envUrl))
+        {
+            BaseUrl = envUrl;
+        }
+
+        // Support CLI args: uchat <server_ip_or_url> [port]
         if (args.Length >= 2 && int.TryParse(args[1], out var port) && port is > 0 and <= 65535)
         {
             var host = args[0];
@@ -27,9 +37,21 @@ public static class NetworkConfig
                 ? $"{host}:{port}/"
                 : $"http://{host}:{port}/";
         }
-        else if (args.Length == 1 && Uri.TryCreate(args[0], UriKind.Absolute, out var uri))
+        else if (args.Length == 1)
         {
-            BaseUrl = uri.ToString();
+            var target = args[0];
+            if (int.TryParse(target, out var p) && p is > 0 and <= 65535)
+            {
+                BaseUrl = $"http://localhost:{p}/";
+            }
+            else if (Uri.TryCreate(target, UriKind.Absolute, out var uri))
+            {
+                BaseUrl = uri.ToString();
+            }
+            else
+            {
+                BaseUrl = $"http://{target}:5049/";
+            }
         }
     }
 

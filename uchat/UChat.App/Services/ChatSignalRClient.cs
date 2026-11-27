@@ -43,28 +43,19 @@ public sealed class ChatSignalRClient : IAsyncDisposable
             MessageDeleted?.Invoke(message);
         });
 
-        _connection.On<Guid>("ConversationCreated", conversationId =>
+        _connection.On<Guid>("ConversationCreated", _ =>
         {
-            Console.WriteLine(
-                $"[SignalR] ConversationCreated: {conversationId}");
-
             ConversationCreated?.Invoke();
         });
 
-        _connection.Reconnected += connectionId =>
+        _connection.Reconnected += _ =>
         {
-            Console.WriteLine("[SignalR] Reconnected");
-
             Reconnected?.Invoke();
-
             return Task.CompletedTask;
         };
 
-        _connection.Closed += error =>
+        _connection.Closed += _ =>
         {
-            Console.WriteLine(
-                $"[SignalR] Closed: {error?.Message}");
-
             return Task.CompletedTask;
         };
     }
@@ -81,9 +72,6 @@ public sealed class ChatSignalRClient : IAsyncDisposable
             if (_connection.State == HubConnectionState.Disconnected)
             {
                 await _connection.StartAsync();
-
-                Console.WriteLine(
-                    $"[SignalR] Connected. Account: {AuthSession.AccountId}");
             }
         }
         finally

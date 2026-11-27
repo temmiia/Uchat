@@ -20,19 +20,32 @@ public sealed class JwtTokenService
     {
         var key = Environment.GetEnvironmentVariable("UCHAT_JWT_KEY")
             ?? Environment.GetEnvironmentVariable("UCHAT_JWT_SECRET")
-            ?? _configuration["Jwt:Key"]
-            ?? throw new InvalidOperationException("JWT key is not configured.");
+            ?? _configuration["Jwt:Key"];
+
+        if (string.IsNullOrWhiteSpace(key))
+        {
+            throw new InvalidOperationException("JWT key is not configured.");
+        }
 
         var issuer = Environment.GetEnvironmentVariable("UCHAT_JWT_ISSUER")
-            ?? _configuration["Jwt:Issuer"]
-            ?? "UChat.Server";
+            ?? _configuration["Jwt:Issuer"];
+
+        if (string.IsNullOrWhiteSpace(issuer))
+        {
+            throw new InvalidOperationException("JWT issuer is not configured.");
+        }
 
         var audience = Environment.GetEnvironmentVariable("UCHAT_JWT_AUDIENCE")
-            ?? _configuration["Jwt:Audience"]
-            ?? "UChat.Client";
+            ?? _configuration["Jwt:Audience"];
 
+        if (string.IsNullOrWhiteSpace(audience))
+        {
+            throw new InvalidOperationException("JWT audience is not configured.");
+        }
+
+        var trimmedKey = key.Trim();
         var credentials = new SigningCredentials(
-            new SymmetricSecurityKey(Encoding.UTF8.GetBytes(key)),
+            new SymmetricSecurityKey(Encoding.UTF8.GetBytes(trimmedKey)),
             SecurityAlgorithms.HmacSha256);
 
         var claims = new[]

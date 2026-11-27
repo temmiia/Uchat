@@ -35,8 +35,26 @@ public sealed class ChatHub : Hub
         ?? Context.User?.FindFirstValue(
             ClaimTypes.NameIdentifier);
 
+    private void EnsureNotExpired()
+    {
+        var expClaim = Context.User?.FindFirst(JwtRegisteredClaimNames.Exp)?.Value
+            ?? Context.User?.FindFirst("exp")?.Value;
+
+        if (!string.IsNullOrWhiteSpace(expClaim) && long.TryParse(expClaim, out var expSeconds))
+        {
+            var expTime = DateTimeOffset.FromUnixTimeSeconds(expSeconds);
+            if (expTime <= DateTimeOffset.UtcNow)
+            {
+                _logger.LogWarning("Security event: Expired token attempt by Account {AccountId} on Connection {ConnectionId}", AccountId, Context.ConnectionId);
+                Context.Abort();
+                throw new HubException("Token has expired. Please re-authenticate.");
+            }
+        }
+    }
+
     public override async Task OnConnectedAsync()
     {
+        EnsureNotExpired();
         var accountId = AccountId;
 
         if (string.IsNullOrWhiteSpace(accountId))
@@ -85,6 +103,7 @@ public sealed class ChatHub : Hub
     public async Task JoinConversation(
         Guid conversationId)
     {
+        EnsureNotExpired();
         var accountId = AccountId;
 
         if (string.IsNullOrWhiteSpace(accountId))
@@ -101,8 +120,11 @@ public sealed class ChatHub : Hub
                 Context.ConnectionAborted);
 
         if (!isMember)
+        {
+            _logger.LogWarning("Security event: SignalR JoinConversation denied for Account {AccountId} to {ConversationId}", accountId, conversationId);
             throw new HubException(
                 "Access denied to this conversation.");
+        }
 
         await Groups.AddToGroupAsync(
             Context.ConnectionId,
@@ -128,6 +150,7 @@ public sealed class ChatHub : Hub
         string? clientMessageId = null,
         DateTime? createdAtUtc = null)
     {
+        EnsureNotExpired();
         var accountId = AccountId;
 
         if (string.IsNullOrWhiteSpace(accountId))
@@ -154,8 +177,11 @@ public sealed class ChatHub : Hub
             .ToListAsync(Context.ConnectionAborted);
 
         if (!memberIds.Contains(accountId))
+        {
+            _logger.LogWarning("Security event: SignalR SendMessage denied for Account {AccountId} to conversation {ConversationId}", accountId, conversationId);
             throw new HubException(
                 "Access denied to this conversation.");
+        }
 
         var (response, isDuplicate) =
             await _messageService.SaveMessageAsync(
@@ -194,6 +220,7 @@ public sealed class ChatHub : Hub
         Guid messageId,
         string newContent)
     {
+        EnsureNotExpired();
         var accountId = Context.User?.FindFirst(
             JwtRegisteredClaimNames.Sub)?.Value;
 
@@ -216,6 +243,7 @@ public sealed class ChatHub : Hub
 
         if (!isMember)
         {
+            _logger.LogWarning("Security event: SignalR EditMessage denied for Account {AccountId} to conversation {ConversationId}", accountId, conversationId);
             throw new HubException("Access denied to this conversation.");
         }
 
@@ -261,6 +289,7 @@ public sealed class ChatHub : Hub
         Guid conversationId,
         Guid messageId)
     {
+        EnsureNotExpired();
         var accountId = Context.User?.FindFirst(
             JwtRegisteredClaimNames.Sub)?.Value;
 
@@ -283,6 +312,7 @@ public sealed class ChatHub : Hub
 
         if (!isMember)
         {
+            _logger.LogWarning("Security event: SignalR DeleteMessage denied for Account {AccountId} to conversation {ConversationId}", accountId, conversationId);
             throw new HubException("Access denied to this conversation.");
         }
 
@@ -324,6 +354,7 @@ public sealed class ChatHub : Hub
             DateTime? beforeUtc = null,
             DateTime? afterUtc = null)
     {
+        EnsureNotExpired();
         var accountId = AccountId;
 
         if (string.IsNullOrWhiteSpace(accountId))
@@ -340,8 +371,11 @@ public sealed class ChatHub : Hub
                 Context.ConnectionAborted);
 
         if (!isMember)
+        {
+            _logger.LogWarning("Security event: SignalR GetMessages denied for Account {AccountId} to conversation {ConversationId}", accountId, conversationId);
             throw new HubException(
                 "Access denied to this conversation.");
+        }
 
         return await _messageService.GetMessagesAsync(
             conversationId,

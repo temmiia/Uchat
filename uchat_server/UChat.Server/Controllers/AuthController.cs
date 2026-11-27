@@ -70,7 +70,11 @@ public sealed class AuthController : ControllerBase
 
         if (user is null)
         {
-            _logger.LogWarning("Failed login attempt for username '{UserName}'", request.Username?.Trim());
+            _logger.LogWarning(
+                "Security event: Failed login attempt for username '{UserName}' from IP {RemoteIp}",
+                request.Username?.Trim(),
+                HttpContext.Connection.RemoteIpAddress?.ToString());
+
             return Unauthorized(new
             {
                 error = "Invalid username or password."
@@ -90,18 +94,25 @@ public sealed class AuthController : ControllerBase
     [HttpGet("me")]
     public IActionResult Me()
     {
-        var accountId = User.FindFirst(
-            System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+        var accountId = User.FindFirst(System.IdentityModel.Tokens.Jwt.JwtRegisteredClaimNames.Sub)?.Value
+            ?? User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value
+            ?? User.FindFirst("sub")?.Value;
 
         if (string.IsNullOrWhiteSpace(accountId))
         {
-            return Unauthorized();
+            _logger.LogWarning("Security event: /api/auth/me called with token missing sub/nameidentifier claim");
+            return Unauthorized(new { error = "Unauthorized." });
         }
+
+        var username = User.FindFirst(System.IdentityModel.Tokens.Jwt.JwtRegisteredClaimNames.UniqueName)?.Value
+            ?? User.FindFirst(System.Security.Claims.ClaimTypes.Name)?.Value
+            ?? User.FindFirst("unique_name")?.Value
+            ?? User.Identity?.Name;
 
         return Ok(new
         {
             accountId,
-            username = User.Identity?.Name
+            username
         });
     }
 }

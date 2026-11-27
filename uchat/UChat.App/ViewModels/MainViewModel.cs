@@ -130,12 +130,7 @@ public partial class MainViewModel : ObservableObject, IAsyncDisposable
     {
         Dispatcher.UIThread.Post(async () =>
         {
-            Console.WriteLine("[Chat] Refreshing conversations");
-
             await RefreshConversationsAsync();
-
-            Console.WriteLine(
-                $"[Chat] Conversations count: {Conversations.Count}");
         });
     }
 

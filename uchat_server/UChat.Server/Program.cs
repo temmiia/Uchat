@@ -78,23 +78,58 @@ builder.Services.AddScoped<MessageService>();
 
 builder.Services.AddScoped<IPasswordHasher<User>, PasswordHasher<User>>();
 
+const string DefaultDevelopmentSecret = "uchat_development_secret_key_at_least_32_bytes_long_12345";
+
 var jwtKey = Environment.GetEnvironmentVariable("UCHAT_JWT_KEY")
     ?? Environment.GetEnvironmentVariable("UCHAT_JWT_SECRET")
-    ?? builder.Configuration["Jwt:Key"]
-    ?? throw new InvalidOperationException("JWT key is not configured.");
+    ?? builder.Configuration["Jwt:Key"];
 
-var jwtIssuer = Environment.GetEnvironmentVariable("UCHAT_JWT_ISSUER")
-    ?? builder.Configuration["Jwt:Issuer"]
-    ?? "UChat.Server";
+if (string.IsNullOrWhiteSpace(jwtKey))
+{
+    if (builder.Environment.IsDevelopment())
+    {
+        jwtKey = DefaultDevelopmentSecret;
+    }
+    else
+    {
+        throw new InvalidOperationException("In Production, UCHAT_JWT_KEY environment variable must be configured.");
+    }
+}
 
-var jwtAudience = Environment.GetEnvironmentVariable("UCHAT_JWT_AUDIENCE")
-    ?? builder.Configuration["Jwt:Audience"]
-    ?? "UChat.Client";
+var trimmedJwtKey = jwtKey.Trim();
 
-if (Encoding.UTF8.GetByteCount(jwtKey) < 32)
+if (trimmedJwtKey.Length < 32 || Encoding.UTF8.GetByteCount(trimmedJwtKey) < 32)
 {
     throw new InvalidOperationException(
-        "JWT key must contain at least 32 bytes.");
+        "JWT key must contain at least 32 non-whitespace characters.");
+}
+
+if (trimmedJwtKey.Distinct().Count() < 5)
+{
+    throw new InvalidOperationException(
+        "JWT key has insufficient entropy (cannot be predictable or composed of repeated characters).");
+}
+
+if (!builder.Environment.IsDevelopment() && string.Equals(trimmedJwtKey, DefaultDevelopmentSecret, StringComparison.Ordinal))
+{
+    throw new InvalidOperationException(
+        "Production environment cannot use the default development JWT key.");
+}
+
+var jwtIssuer = Environment.GetEnvironmentVariable("UCHAT_JWT_ISSUER")
+    ?? builder.Configuration["Jwt:Issuer"];
+
+if (string.IsNullOrWhiteSpace(jwtIssuer))
+{
+    throw new InvalidOperationException("JWT issuer must be specified and non-empty.");
+}
+
+var jwtAudience = Environment.GetEnvironmentVariable("UCHAT_JWT_AUDIENCE")
+    ?? builder.Configuration["Jwt:Audience"];
+
+if (string.IsNullOrWhiteSpace(jwtAudience))
+{
+    throw new InvalidOperationException("JWT audience must be specified and non-empty.");
 }
 
 builder.Services
@@ -116,11 +151,17 @@ builder.Services
                 }
 
                 return Task.CompletedTask;
+            },
+            OnAuthenticationFailed = context =>
+            {
+                context.Response.Headers.Append("Token-Validation-Error", "Authentication failed");
+                return Task.CompletedTask;
             }
         };
         options.TokenValidationParameters = new TokenValidationParameters
         {
-            NameClaimType = JwtRegisteredClaimNames.Sub,
+            NameClaimType = JwtRegisteredClaimNames.UniqueName,
+            RoleClaimType = "role",
             ValidateIssuer = true,
             ValidIssuer = jwtIssuer,
             ValidateAudience = true,
@@ -128,7 +169,7 @@ builder.Services
             ValidateLifetime = true,
             ValidateIssuerSigningKey = true,
             IssuerSigningKey = new SymmetricSecurityKey(
-                Encoding.UTF8.GetBytes(jwtKey)),
+                Encoding.UTF8.GetBytes(trimmedJwtKey)),
             ClockSkew = TimeSpan.FromSeconds(30)
         };
     });
@@ -168,6 +209,28 @@ app.Logger.LogInformation(
     Environment.ProcessId,
     cliPort);
 
+// Global Exception Handler: prevents leaking internal DB/stack trace details
+app.Use(async (context, next) =>
+{
+    try
+    {
+        await next();
+    }
+    catch (Exception ex)
+    {
+        app.Logger.LogError(ex, "Unhandled server error on {Path}", context.Request.Path);
+        if (!context.Response.HasStarted)
+        {
+            context.Response.StatusCode = StatusCodes.Status500InternalServerError;
+            context.Response.ContentType = "application/json";
+            await context.Response.WriteAsJsonAsync(new
+            {
+                error = "An internal server error occurred."
+            });
+        }
+    }
+});
+
 app.Use(async (context, next) =>
 {
     context.Response.Headers.Append("X-Content-Type-Options", "nosniff");
@@ -186,9 +249,11 @@ if (builder.Configuration["EnableHttpsRedirection"] == "true")
     app.UseHttpsRedirection();
 }
 
+// Structured request logging without sensitive data (query strings masked, no passwords, no tokens)
 app.Use(async (context, next) =>
 {
     var method = context.Request.Method;
+    // Log path only, never log query string that could contain access_token
     var path = context.Request.Path.Value ?? "";
     var startTimestamp = Stopwatch.GetTimestamp();
 

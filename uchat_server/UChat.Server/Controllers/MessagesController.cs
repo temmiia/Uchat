@@ -51,6 +51,7 @@ public sealed class MessagesController : ControllerBase
 
         if (!isMember)
         {
+            _logger.LogWarning("Security event: Forbidden history access attempt by account {AccountId} to conversation {ConversationId}", accountId, conversationId);
             return Forbid();
         }
 
@@ -82,6 +83,7 @@ public sealed class MessagesController : ControllerBase
 
         if (!isMember)
         {
+            _logger.LogWarning("Security event: Forbidden history access attempt by account {AccountId} to conversation {ConversationId}", accountId, conversationId);
             return Forbid();
         }
 
@@ -144,6 +146,7 @@ public sealed class MessagesController : ControllerBase
         var isMember = await CheckMembershipAsync(conversationId, accountId, cancellationToken);
         if (!isMember)
         {
+            _logger.LogWarning("Security event: Forbidden history access attempt by account {AccountId} to conversation {ConversationId}", accountId, conversationId);
             return Forbid();
         }
 
@@ -175,6 +178,7 @@ public sealed class MessagesController : ControllerBase
         }
         catch (UnauthorizedAccessException)
         {
+            _logger.LogWarning("Security event: Unauthorized message modification attempt by account {AccountId} for message {MessageId}", accountId, messageId);
             return Forbid();
         }
         catch (KeyNotFoundException ex)
@@ -203,6 +207,7 @@ public sealed class MessagesController : ControllerBase
         var isMember = await CheckMembershipAsync(conversationId, accountId, cancellationToken);
         if (!isMember)
         {
+            _logger.LogWarning("Security event: Forbidden history access attempt by account {AccountId} to conversation {ConversationId}", accountId, conversationId);
             return Forbid();
         }
 
@@ -226,6 +231,7 @@ public sealed class MessagesController : ControllerBase
         }
         catch (UnauthorizedAccessException)
         {
+            _logger.LogWarning("Security event: Unauthorized message modification attempt by account {AccountId} for message {MessageId}", accountId, messageId);
             return Forbid();
         }
         catch (KeyNotFoundException ex)

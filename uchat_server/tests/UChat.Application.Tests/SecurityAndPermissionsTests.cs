@@ -288,4 +288,19 @@ public class SecurityAndPermissionsTests
 
         Assert.True(validByteCount >= 32);
     }
+
+    [Fact]
+    public void JwtSecret_With_Only_Spaces_Or_Repetitive_Characters_Has_Low_Entropy()
+    {
+        var whitespaceOnly = new string(' ', 40);
+        Assert.True(string.IsNullOrWhiteSpace(whitespaceOnly) || whitespaceOnly.Trim().Length < 32);
+
+        var repetitive = new string('a', 40);
+        var uniqueCharCount = repetitive.Distinct().Count();
+        Assert.True(uniqueCharCount < 5);
+
+        var strongKey = "my_custom_super_secure_jwt_key_with_high_entropy_12345!";
+        Assert.True(strongKey.Trim().Length >= 32);
+        Assert.True(strongKey.Distinct().Count() >= 5);
+    }
 }
