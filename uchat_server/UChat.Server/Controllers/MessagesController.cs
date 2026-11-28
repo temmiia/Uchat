@@ -161,6 +161,7 @@ public sealed class MessagesController : ControllerBase
 
             var messageEntity = await _dbContext.Messages
                 .AsNoTracking()
+                .Include(m => m.Sender)
                 .FirstOrDefaultAsync(m => m.MessageId == response.MessageId, cancellationToken);
 
             if (messageEntity is not null)

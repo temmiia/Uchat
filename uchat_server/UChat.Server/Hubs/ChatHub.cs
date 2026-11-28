@@ -258,6 +258,7 @@ public sealed class ChatHub : Hub
 
             var messageEntity = await _dbContext.Messages
                 .AsNoTracking()
+                .Include(m => m.Sender)
                 .FirstOrDefaultAsync(m => m.MessageId == response.MessageId, Context.ConnectionAborted);
 
             if (messageEntity is not null)

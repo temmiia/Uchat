@@ -2,6 +2,7 @@ using System.Diagnostics;
 using System.IdentityModel.Tokens.Jwt;
 using System.Text;
 using System.Threading.RateLimiting;
+using Microsoft.EntityFrameworkCore;    
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.RateLimiting;
@@ -67,7 +68,16 @@ builder.Services.AddSingleton<
     IUserIdProvider,
     AccountUserIdProvider>();
 builder.Services.AddScoped<LoginUserService>();
-builder.Services.AddDbContext<AppDbContext>();
+builder.Services.AddDbContext<AppDbContext>(options =>
+{
+    var connectionString =
+        builder.Configuration.GetConnectionString("UChat");
+
+    if (!string.IsNullOrWhiteSpace(connectionString))
+    {
+        options.UseSqlite(connectionString);
+    }
+});
 
 builder.Services.AddScoped<IUserRepository, EfUserRepository>();
 builder.Services.AddScoped<RegisterUserService>();
