@@ -18,33 +18,31 @@ using UChat.Server.Hubs;
 using UChat.Server.Services;
 
 int? cliPort = null;
-if (args.Length > 0)
+foreach (var arg in args)
 {
-    if (int.TryParse(args[0], out var p) && p is > 0 and <= 65535)
-    {
-        cliPort = p;
-    }
-    else if (args[0] is "--help" or "-h" or "-?" or "/?")
+    if (arg is "--help" or "-h" or "-?" or "/?")
     {
         Console.WriteLine("Usage: uchat_server <port>");
         return 0;
     }
-    else
+
+    if (int.TryParse(arg, out var p) && p is > 0 and <= 65535)
     {
-        Console.WriteLine("Error: Port must be an integer between 1 and 65535.");
-        Console.WriteLine("Usage: uchat_server <port>");
-        return 1;
+        cliPort = p;
+        break;
     }
 }
-else
-{
-    var isDev = string.Equals(
-        Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT"),
-        "Development",
-        StringComparison.OrdinalIgnoreCase);
 
-    if (!isDev)
+if (!cliPort.HasValue)
+{
+    var env = Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT");
+    var isDev = string.IsNullOrEmpty(env)
+        || string.Equals(env, "Development", StringComparison.OrdinalIgnoreCase)
+        || string.Equals(env, "Testing", StringComparison.OrdinalIgnoreCase);
+
+    if (!isDev && args.Length > 0 && !args[0].StartsWith("--"))
     {
+        Console.WriteLine("Error: Port must be an integer between 1 and 65535.");
         Console.WriteLine("Usage: uchat_server <port>");
         return 1;
     }
@@ -86,7 +84,7 @@ var jwtKey = Environment.GetEnvironmentVariable("UCHAT_JWT_KEY")
 
 if (string.IsNullOrWhiteSpace(jwtKey))
 {
-    if (builder.Environment.IsDevelopment())
+    if (builder.Environment.IsDevelopment() || builder.Environment.IsEnvironment("Testing"))
     {
         jwtKey = DefaultDevelopmentSecret;
     }
@@ -110,7 +108,7 @@ if (trimmedJwtKey.Distinct().Count() < 5)
         "JWT key has insufficient entropy (cannot be predictable or composed of repeated characters).");
 }
 
-if (!builder.Environment.IsDevelopment() && string.Equals(trimmedJwtKey, DefaultDevelopmentSecret, StringComparison.Ordinal))
+if (!builder.Environment.IsDevelopment() && !builder.Environment.IsEnvironment("Testing") && string.Equals(trimmedJwtKey, DefaultDevelopmentSecret, StringComparison.Ordinal))
 {
     throw new InvalidOperationException(
         "Production environment cannot use the default development JWT key.");
@@ -183,17 +181,20 @@ builder.Services.AddRateLimiter(options =>
 {
     options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
 
+    var isTest = builder.Environment.IsEnvironment("Testing");
     options.AddPolicy("auth-login", context =>
-        RateLimitPartition.GetFixedWindowLimiter(
-            partitionKey: context.Connection.RemoteIpAddress?.ToString()
-                ?? "unknown",
-            factory: _ => new FixedWindowRateLimiterOptions
-            {
-                PermitLimit = 5,
-                Window = TimeSpan.FromMinutes(1),
-                QueueLimit = 0,
-                AutoReplenishment = true
-            }));
+        isTest
+            ? RateLimitPartition.GetNoLimiter("test")
+            : RateLimitPartition.GetFixedWindowLimiter(
+                partitionKey: context.Connection.RemoteIpAddress?.ToString()
+                    ?? "unknown",
+                factory: _ => new FixedWindowRateLimiterOptions
+                {
+                    PermitLimit = 5,
+                    Window = TimeSpan.FromMinutes(1),
+                    QueueLimit = 0,
+                    AutoReplenishment = true
+                }));
 });
 
 var app = builder.Build();
@@ -276,6 +277,7 @@ app.UseAuthentication();
 app.UseAuthorization();
 app.MapControllers();
 app.MapHub<ChatHub>("/hubs/chat");
+app.MapHub<ChatHub>("/chatHub");
 app.UseRateLimiter();
 
 app.MapGet("/health", () =>
@@ -296,3 +298,8 @@ using (var scope = app.Services.CreateScope())
 
 app.Run();
 return 0;
+
+public partial class Program
+{
+}
+
