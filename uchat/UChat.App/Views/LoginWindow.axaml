@@ -10,7 +10,7 @@
 
     <Grid RowDefinitions="32,*">
 
-        <!-- Верхня панель (перетягування вікна) -->
+        <!-- Top bar (window drag) -->
         <Border Grid.Row="0"
                 Background="Transparent"
                 PointerPressed="OnDragAreaPointerPressed">
@@ -22,7 +22,7 @@
                        FontWeight="SemiBold" />
         </Border>
 
-        <!-- Біла картка -->
+        <!-- Content card -->
         <Border Grid.Row="1"
                 Margin="16,4,16,16"
                 Padding="28"
@@ -34,7 +34,7 @@
 
             <StackPanel Spacing="14">
 
-                <!-- Лого: лаймова зірочка на чорному -->
+                <!-- Logo: accent star on dark -->
                 <Border Width="56" Height="56"
                         CornerRadius="20"
                         Background="{DynamicResource AccentGradientBrush}"

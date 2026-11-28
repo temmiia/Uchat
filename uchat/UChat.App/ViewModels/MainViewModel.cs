@@ -45,6 +45,24 @@ public partial class MainViewModel : ObservableObject, IAsyncDisposable
     private bool isGroupDialogOpen;
 
     [ObservableProperty]
+    private bool isSettingsDialogOpen;
+
+    [ObservableProperty]
+    private string selectedMascotColor = "Blue";
+
+    [ObservableProperty]
+    private string selectedMascotHat = "None";
+
+    [ObservableProperty]
+    private int selectedMascotColorIndex = 3;
+
+    [ObservableProperty]
+    private int selectedMascotHatIndex = 2;
+
+    [ObservableProperty]
+    private int selectedThemeIndex;
+
+    [ObservableProperty]
     private string groupTitle = "";
 
     [ObservableProperty]
@@ -234,6 +252,64 @@ public partial class MainViewModel : ObservableObject, IAsyncDisposable
         GroupMemberUsername = "";
         GroupError = "";
         GroupMembers.Clear();
+    }
+
+    [RelayCommand]
+    private void OpenSettingsDialog()
+    {
+        IsSettingsDialogOpen = true;
+    }
+
+    [RelayCommand]
+    private void CloseSettingsDialog()
+    {
+        IsSettingsDialogOpen = false;
+    }
+
+    partial void OnSelectedMascotColorIndexChanged(int value)
+    {
+        SelectedMascotColor = value switch
+        {
+            1 => "Purple",
+            2 => "Green",
+            3 => "Blue",
+            _ => "Pink"
+        };
+    }
+
+    partial void OnSelectedMascotHatIndexChanged(int value)
+    {
+        SelectedMascotHat = value switch
+        {
+            1 => "Luffy",
+            2 => "None",
+            _ => "Witch"
+        };
+    }
+
+    [RelayCommand]
+    private void SelectMascotColor(string color)
+    {
+        SelectedMascotColor = color;
+        SelectedMascotColorIndex = color switch
+        {
+            "Purple" => 1,
+            "Green" => 2,
+            "Blue" => 3,
+            _ => 0
+        };
+    }
+
+    [RelayCommand]
+    private void SelectMascotHat(string hat)
+    {
+        SelectedMascotHat = hat;
+        SelectedMascotHatIndex = hat switch
+        {
+            "Luffy" => 1,
+            "None" => 2,
+            _ => 0
+        };
     }
 
     [RelayCommand]

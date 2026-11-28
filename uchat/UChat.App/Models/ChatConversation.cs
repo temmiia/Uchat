@@ -13,7 +13,7 @@ public sealed class ChatConversation
 
     public string? TargetUsername { get; set; }
 
-    // Ініціали для аватара в списку чатів (до двох літер)
+    // Avatar initials in chat list (up to two letters)
     public string Initials
     {
         get

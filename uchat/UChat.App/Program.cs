@@ -5,14 +5,14 @@ namespace UChat.App;
 
 sealed class Program
 {
-    // Код ініціалізації. Не використовуйте Avalonia, сторонні API або код,
-    // що залежить від SynchronizationContext, до виклику AppMain: усе ще не ініціалізовано,
-    // і це може призвести до помилок.
+    // Initialization code. Don't use any Avalonia, third-party APIs or any
+    // SynchronizationContext-reliant code before AppMain is called: things aren't initialized
+    // yet and stuff might break.
     [STAThread]
     public static void Main(string[] args) => BuildAvaloniaApp()
         .StartWithClassicDesktopLifetime(args);
 
-    // Конфігурація Avalonia; не видаляйте, вона також використовується візуальним дизайнером.
+    // Avalonia configuration, don't remove; also used by visual designer.
     public static AppBuilder BuildAvaloniaApp()
         => AppBuilder.Configure<App>()
             .UsePlatformDetect()
